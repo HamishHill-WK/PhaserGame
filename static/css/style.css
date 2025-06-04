@@ -1,0 +1,96 @@
+#main-container {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 20px;
+    background-color: #f0f0f0;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+#game-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#game-container {
+    width: 800px;
+    height: 600px;
+    flex-shrink: 0;
+}
+
+.score-display {
+    text-align: center;
+    font-size: 24px;
+    margin: 20px 0;
+}
+
+.editor-container {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    flex: 1;
+    min-width: 400px;
+    height: calc(100vh - 40px); /* Fill viewport height minus padding */
+}
+
+.editor-header {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;
+    background-color: #f5f5f5;
+    border-bottom: 1px solid #ccc;
+    flex-shrink: 0; /* Prevent header from shrinking */
+}
+
+#editor {
+    flex: 1; /* Take up remaining space */
+    width: 100%;
+    font-size: 14px;
+    min-height: 400px; /* Minimum height for usability */
+}
+
+.editor-actions {
+    margin-top: 10px;
+}
+
+.editor-actions button {
+    margin-right: 10px;
+    padding: 6px 12px;
+}
+
+.controls {
+    text-align: center;
+    margin-top: 20px;
+    padding: 10px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    background: white;
+}
+
+/* Responsive layout for smaller screens */
+@media (max-width: 1400px) {
+    #main-container {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .editor-container {
+        max-width: 1000px;
+        margin-top: 20px;
+        height: 500px; /* Fixed height for mobile */
+    }
+    
+    #editor {
+        flex: 1;
+        min-height: 300px;
+    }
+    
+    .controls {
+        position: static;
+        margin-top: 20px;
+        text-align: center;
+    }
+}
