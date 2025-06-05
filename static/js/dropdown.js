@@ -24,8 +24,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (checkbox) {
             checkbox.addEventListener('click', function(event) {
                 //event.preventDefault();
-                const current = this.checked
-                handleTaskChange(taskId, current, event);
+                const currentCheckedStatus = this.checked;
+                handleTaskChange(taskId, currentCheckedStatus, !this.disabled, event);
             });
         }
     });
@@ -42,35 +42,62 @@ const taskDependencies = {
 };
 
 function resetTasks() {
-    document.getElementById('task1').checked = false;
-    document.getElementById('task2').checked = false;
-    document.getElementById('task3').checked = false;
-    document.getElementById('task4').checked = false;
-    document.getElementById('task5').checked = false;
+    const t1 = document.getElementById('task1')
+    t1.checked = false;
+    t1.disabled = false; // Task 1 is always checkable
+
+    const t2 = document.getElementById('task2');
+    t2.checked = false;
+    t2.disabled = true; // Disable Task 2 initially
+
+    const t3 = document.getElementById('task3');
+    t3.checked = false;
+    t3.disabled = true; // Disable Task 3 initially
+
+    const t4 = document.getElementById('task4');
+    t4.checked = false;
+    t4.disabled = true; // Disable Task 4 initially
+    
+    const t5 = document.getElementById('task5');
+    t5.checked = false;
+    t5.disabled = true; // Disable Task 5 initially
 }
 
-function handleTaskChange(taskId, isChecked, event) {
+function handleTaskChange(taskId, currentCheckedStatus, enabled, event) {
     const dependencies = taskDependencies[taskId];
-    console.log(`Task ${taskId} changed to ${isChecked}. Checking dependencies...`);
-    //if (isChecked === false) {
-        console.log(`checking ${taskId}. Checking dependencies...`);
-        let canCheck = true;
+    console.log(`checking ${taskId}. Checking dependencies...`);
+    let canCheck = true;
 
+    dependencies.forEach(dep => {
+        const depCheckbox = document.getElementById(dep);
+        if (depCheckbox && !depCheckbox.checked) {
+            canCheck = false; // Can uncheck if all dependencies are checked
+        } 
+    });
+
+    if (canCheck) {
+        // If no dependencies are checked, reset the task
+        const selectedTask = document.getElementById(taskId);
+        selectedTask.checked = true;
+        console.warn(`checking ${taskId} due to met dependencies.`);
+    }
+    else{
+        document.getElementById(taskId).checked = false;
+        console.warn(`Cannot check ${taskId} due to unmet dependencies.`);
+    }
+
+    Object.keys(taskDependencies).forEach(dep => {
+        const dependencies = taskDependencies[dep];
+        let disabled = false;
         dependencies.forEach(dep => {
             const depCheckbox = document.getElementById(dep);
             if (depCheckbox && !depCheckbox.checked) {
-                canCheck = false; // Can uncheck if all dependencies are checked
+                disabled = true; // Can uncheck if all dependencies are checked
             } 
         });
-
-        if (canCheck) {
-            // If no dependencies are checked, reset the task
-            document.getElementById(taskId).checked = true;
-            console.warn(`checking ${taskId} due to met dependencies.`);
+        const depCheckbox = document.getElementById(dep);
+        if (depCheckbox && disabled === false) {
+            depCheckbox.disabled = disabled;
         }
-        else{
-            document.getElementById(taskId).checked = false;
-            console.warn(`Cannot check ${taskId} due to unmet dependencies.`);
-        }
-    //} 
+    });
 }
