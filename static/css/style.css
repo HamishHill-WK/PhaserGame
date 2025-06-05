@@ -36,6 +36,78 @@
     height: calc(100vh - 40px); /* Fill viewport height minus padding */
 }
 
+.dropdown-container {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-btn {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 30px;
+    font-size: 14px;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.dropdown-btn:hover {
+    background-color: #45a049;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #f9f9f9;
+    min-width: 500px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 1000;
+    border-radius: 4px;
+    padding: 10px;
+    top: 100%;
+    left: 0;
+}
+
+.dropdown-content.show {
+    display: block;
+}
+
+.checkbox-item {
+    display: block;
+    padding: 8px 0;
+    cursor: pointer;
+    user-select: none;
+}
+
+.checkbox-item:hover {
+    background-color: #f1f1f1;
+    padding-left: 5px;
+    border-radius: 3px;
+}
+
+.checkbox-item input[type="checkbox"] {
+    margin-right: 8px;
+}
+
+.dropdown-divider {
+    border-top: 1px solid #ddd;
+    margin: 10px 0;
+}
+
+.dropdown-action {
+    width: 100%;
+    padding: 8px;
+    margin: 2px 0;
+    background-color: #2196F3;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.dropdown-action:hover {
+    background-color: #1976D2;
+}
 .editor-header {
     display: flex;
     justify-content: space-between;

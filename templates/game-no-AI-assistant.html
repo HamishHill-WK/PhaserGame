@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.24.1/ace.js"></script>
+</head>
+<body>    <h1>Breakout Game</h1>
+    
+    <div id="main-container">
+        <nav>
+            <a href="{{ url_for('about') }}" target="_blank">About</a>
+        </nav>
+        <div id="game-section">
+            <div id="game-container"></div>
+            <div class="controls">
+                <button id="restart-button">Restart Game</button>
+                <p>Use your mouse to control the paddle</p>
+            </div>
+        </div>
+        
+        <div class="editor-container">
+            <div class="editor-header">
+                <div class="dropdown-container">
+                    <button class="dropdown-btn" onclick="toggleDropdown()">Tasks ▼</button>
+                    <div id="dropdown-content" class="dropdown-content">
+                        <div class="dropdown-content-container" id="task1-container">
+                            <label class="checkbox-item">
+                                <input type="checkbox" id="task1"> Task 1
+                            </label>
+                            <div class="checkbox-description" id="task1-description">
+                                <p>Task 1: Implement the basic game mechanics.</p>
+                            </div>
+                        </div>
+                        <div class="dropdown-content-container" id="task2-container">
+                            <label class="checkbox-item">
+                                <input type="checkbox" id="task2"> Task 2
+                            </label>
+                            <div class="checkbox-description" id="task2-description">
+                                <p>Task 2: Implement the basic game mechanics.</p>
+                            </div>
+                        </div>
+                        <div class="dropdown-content-container" id="task3-container">
+                            <label class="checkbox-item">
+                                <input type="checkbox" id="task3"> Task 3
+                            </label>
+                            <div class="checkbox-description" id="task3-description">
+                                <p>Task 3: Implement the basic game mechanics.</p>
+                            </div>
+                        </div>
+                        <div class="dropdown-content-container" id="task4-container">
+                            <label class="checkbox-item">
+                                <input type="checkbox" id="task4"> Task 4
+                            </label>
+                            <div class="checkbox-description" id="task4-description">
+                                <p>Task 4: Implement the basic game mechanics.</p>
+                            </div>
+                        </div>
+                        <div class="dropdown-content-container" id="task5-container">
+                            <label class="checkbox-item">
+                                <input type="checkbox" id="task5"> Task 5
+                            </label>
+                            <div class="checkbox-description" id="task5-description">
+                                <p>Task 5: Implement the basic game mechanics.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="editor-actions">
+                    <button id="save-code">Save Changes</button>
+                    <button id="reload-game">Reload Game</button>
+                </div>
+            </div>            <div id="editor"></div>
+        </div>
+    </div>
+      <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="{{ url_for('static', filename='js/game.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/editor.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/dropdown.js') }}"></script>
+</body>
+</html>

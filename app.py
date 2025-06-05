@@ -6,8 +6,12 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key")
 
 @app.route("/")
-def game():        
-    return render_template('game.html')
+def gameNoAIassistant():        
+    return render_template('game-no-AI-assistant.html')
+
+@app.route("/about")
+def about():
+    return render_template('about.html')
 
 @app.route("/save-code", methods=["POST"])
 def save_code():
