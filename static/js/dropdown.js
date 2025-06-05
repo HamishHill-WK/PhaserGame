@@ -32,6 +32,8 @@ document.addEventListener('DOMContentLoaded', function() {
     resetTasks(); // Initialize settings on page load
 });
 
+let currentTask = "task1";
+
 // Task dependencies - define which tasks depend on which
 const taskDependencies = {
     'task1': [], // Task 1 - no dependencies
@@ -98,6 +100,8 @@ function handleTaskChange(taskId, currentCheckedStatus, enabled, event) {
         const depCheckbox = document.getElementById(dep);
         if (depCheckbox && disabled === false) {
             depCheckbox.disabled = disabled;
+            currentTask = depCheckbox.closest('label').textContent.trim(); // Update current task
+            document.getElementById('current-task-text').innerText = `Current Task: ${currentTask}`;
         }
     });
 }
