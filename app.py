@@ -5,13 +5,18 @@ import webbrowser
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key")
 
-@app.route("/")
+@app.route("/gamenoAIassistant")
 def gameNoAIassistant():        
     return render_template('game-no-AI-assistant.html')
 
-@app.route("/about")
-def about():
-    return render_template('about.html')
+@app.route("/gameAIassistant")
+def gameAIassistant():        
+    return render_template('game-AI-assistant.html')
+
+@app.route("/")
+@app.route("/index")
+def index():
+    return render_template('index.html')
 
 @app.route("/save-code", methods=["POST"])
 def save_code():
