@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         
         const scrollHeight = textarea.scrollHeight;
-        const minHeight = 30;
+        const minHeight = 100;
         const maxHeight = 200; // Set this to what you want (much smaller than 450px)
         
         const newHeight = Math.max(minHeight, Math.min(scrollHeight, maxHeight));
@@ -79,8 +79,20 @@ document.addEventListener('DOMContentLoaded', function() {
         
         console.log('ScrollHeight:', scrollHeight, 'NewHeight:', newHeight);
     }
-    // ...existing code...
     
+    textarea.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            if (e.shiftKey) {
+                return;
+            }
+            e.preventDefault(); // Prevent new line
+            inputForm.dispatchEvent(new Event('submit')); // Trigger form submission
+            textarea.value = ''; // Clear input after submission
+            textarea.style.height = '100px'; // Reset height to initial value
+        }
+
+    });
+
     textarea.addEventListener('input', autoResize);
     textarea.addEventListener('paste', function() {
         setTimeout(autoResize, 0);
