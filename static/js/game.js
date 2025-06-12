@@ -1,133 +1,1 @@
-class Example extends Phaser.Scene
-{
-    scoreText;
-    score = 0;
-    cursors;
-    platforms;
-    stars;
-    player;
-    scale = 0.1;
-
-    preload ()
-    {
-        this.load.image('sky', 'static/assets/sky.png');
-        this.load.image('ground', 'static/assets/platform.png');
-        this.load.image('star', 'static/assets/star.png');
-        this.load.image('bomb', 'static/assets/bomb.png');
-        this.load.spritesheet('dude', 'static/assets/dude.png', { frameWidth: 32, frameHeight: 48 });
-    }
-
-    create ()
-    {
-        this.add.image(400, 300, 'sky');
-
-        this.platforms = this.physics.add.staticGroup();
-
-        this.groundplatform = this.platforms.create(200, 200, 'ground').refreshBody();
-        //this.groundplatform.body.set
-        //this.groundplatform.body.setSize(this.groundplatform.width * this.scale, this.groundplatform.height * this.scale);
-        this.platforms.create(600, 400, 'ground');
-        this.platforms.create(50, 250, 'ground');
-        this.platforms.create(750, 220, 'ground');
-
-        this.player = this.physics.add.sprite(100, 450, 'dude');
-        this.player.body.setSize(this.player.width * 0.8, this.player.height * 0.8);
-        this.player.setBounce(0.2);
-        this.player.setCollideWorldBounds(true);
-
-        this.anims.create({
-            key: 'left',
-            frames: this.anims.generateFrameNumbers('dude', { start: 0, end: 3 }),
-            frameRate: 10,
-            repeat: -1
-        });
-
-        this.anims.create({
-            key: 'turn',
-            frames: [ { key: 'dude', frame: 4 } ],
-            frameRate: 20
-        });
-
-        this.anims.create({
-            key: 'right',
-            frames: this.anims.generateFrameNumbers('dude', { start: 5, end: 8 }),
-            frameRate: 10,
-            repeat: -1
-        });
-
-        this.cursors = this.input.keyboard.createCursorKeys();
-
-        this.stars = this.physics.add.group({
-            key: 'star',
-            repeat: 11,
-            setXY: { x: 12, y: 0, stepX: 70 }
-        });
-
-        this.stars.children.iterate(child =>
-        {
-
-            child.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8));
-
-        });
-
-        this.scoreText = this.add.text(16, 16, 'score: 0', { fontSize: '32px', fill: '#000' });
-
-        this.physics.add.collider(this.player, this.platforms);
-        this.physics.add.collider(this.stars, this.platforms);
-
-        this.physics.add.overlap(this.player, this.stars, this.collectStar, null, this);
-    }
-
-    update ()
-    {
-        console.log("Player touching down:", this.player.body.touching.down);
-
-        if (this.cursors.left.isDown)
-        {
-            this.player.setVelocityX(-160);
-
-            this.player.anims.play('left', true);
-        }
-        else if (this.cursors.right.isDown)
-        {
-            this.player.setVelocityX(160);
-
-            this.player.anims.play('right', true);
-        }
-        else
-        {
-            this.player.setVelocityX(0);
-
-            this.player.anims.play('turn');
-        }
-
-        if (this.cursors.up.isDown && this.player.body.touching.down)
-        {
-            this.player.setVelocityY(-330);
-        }
-    }
-
-    collectStar (player, star)
-    {
-        star.disableBody(true, true);
-
-        this.score += 10;
-        this.scoreText.setText(`Score: ${this.score}`);
-    }
-}
-
-const config = {
-    type: Phaser.AUTO,
-    width: 1300,
-    height: 600,
-    physics: {
-        default: 'arcade',
-        arcade: {
-            gravity: { y: 300 },
-            debug: true
-        }
-    },
-    scene: Example
-};
-
-const game = new Phaser.Game(config);
+class Breakout extends Phaser.Scene{    constructor ()    {        super({ key: 'breakout' });//lol        this.bricks;        this.paddle;        this.ball;    }    preload ()    {        this.load.atlas('assets', '/static/assets/breakout/breakout.png', '/static/assets/breakout/breakout.json');        }    create ()    {        //  Enable world bounds, but disable the floor        this.physics.world.setBoundsCollision(true, true, true, false);        //  Create the bricks in a 10x6 grid        this.bricks = this.physics.add.staticGroup({            key: 'assets', frame: [ 'blue1', 'red1', 'green1', 'yellow1', 'silver1', 'purple1' ],            frameQuantity: 10,            gridAlign: { width: 10, height: 6, cellWidth: 64, cellHeight: 32, x: 100, y: 100 }        });        this.ball = this.physics.add.image(400, 500, 'assets', 'ball1').setCollideWorldBounds(true).setBounce(1);        this.ball.setData('onPaddle', true);        this.paddle = this.physics.add.image(400, 550, 'assets', 'paddle1').setImmovable();        //  Our colliders        this.physics.add.collider(this.ball, this.bricks, this.hitBrick, null, this);        this.physics.add.collider(this.ball, this.paddle, this.hitPaddle, null, this);        //  Input events        this.input.on('pointermove', function (pointer)        {            //  Keep the paddle within the game            this.paddle.x = Phaser.Math.Clamp(pointer.x, 52, 748);            if (this.ball.getData('onPaddle'))            {                this.ball.x = this.paddle.x;            }        }, this);        this.input.on('pointerup', function (pointer)        {            if (this.ball.getData('onPaddle'))            {                this.ball.setVelocity(-75, -300);                this.ball.setData('onPaddle', false);            }        }, this);    }    hitBrick (ball, brick)    {        brick.disableBody(true, true);        if (this.bricks.countActive() === 0)        {            this.resetLevel();        }    }    resetBall ()    {        this.ball.setVelocity(0);        this.ball.setPosition(this.paddle.x, 500);        this.ball.setData('onPaddle', true);    }    resetLevel ()    {        this.resetBall();        this.bricks.children.each(brick =>        {            brick.enableBody(false, 0, 0, true, true);        });    }    hitPaddle (ball, paddle)    {        let diff = 0;        if (ball.x < paddle.x)        {            //  Ball is on the left-hand side of the paddle            diff = paddle.x - ball.x;            ball.setVelocityX(-10 * diff);        }        else if (ball.x > paddle.x)        {            //  Ball is on the right-hand side of the paddle            diff = ball.x - paddle.x;            ball.setVelocityX(10 * diff);        }        else        {            //  Ball is perfectly in the middle            //  Add a little random X to stop it bouncing straight up!            ball.setVelocityX(2 + Math.random() * 8);        }    }    update ()    {        if (this.ball.y > 600)        {            this.resetBall();        }    }}const config = {    type: Phaser.WEBGL,    width: 800,    height: 600,    parent: 'game-container',    scene: [ Breakout ],    physics: {        default: 'arcade'    }};const game = new Phaser.Game(config);
