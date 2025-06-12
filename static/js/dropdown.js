@@ -55,6 +55,12 @@ function addMessage(message, className) {
     scrollToBottom();
 }
 
+function scrollToBottom() {
+    if (outputDiv) {
+        outputDiv.scrollTop = outputDiv.scrollHeight;
+    }
+}
+
 function resetTasks() {
     const t1 = document.getElementById('task1')
     t1.checked = false;

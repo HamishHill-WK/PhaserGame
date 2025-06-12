@@ -1,3 +1,14 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+    overflow: hidden;
+}
+
 #main-container {
     display: flex;
     flex-direction: row;
@@ -7,7 +18,7 @@
     height: 100vh;
     padding: 20px;
     box-sizing: border-box;
-    overflow: hidden   ;
+    overflow: hidden;
 }
 
 #game-section {

@@ -18,7 +18,7 @@
     border : 4px solid rgb(155, 163, 165);
     background-color: darkgrey;
     height : 100%;
-    overflow:hidden;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
 }
@@ -36,10 +36,12 @@
     border-radius: 4px;
     flex: 1;
     min-width: 400px;
-    overflow-y: scroll;
+    overflow-y: auto;
     margin-bottom: 10px;
     white-space: pre-wrap;
-    min-height : 100px;
+    min-height: 100px;
+    max-height: none; /* Allow it to grow within flex container */
+    scroll-behavior: smooth; /* Smooth scrolling */
 }
 
 #input-form{
@@ -96,6 +98,48 @@
 #submit-button:hover {
     background-color: #359163;
     border: 1px solid #424242;
+}
+
+/* Message styling for chat */
+.player-input {
+    background-color: #e3f2fd;
+    color: #1976d2;
+    padding: 8px 12px;
+    margin: 4px 0;
+    border-radius: 8px;
+    border-left: 4px solid #1976d2;
+    font-family: monospace;
+}
+
+.npc-response {
+    background-color: #f3e5f5;
+    color: #7b1fa2;
+    padding: 8px 12px;
+    margin: 4px 0;
+    border-radius: 8px;
+    border-left: 4px solid #7b1fa2;
+}
+
+.system-message {
+    background-color: #fff3e0;
+    color: #ef6c00;
+    padding: 6px 10px;
+    margin: 4px 0;
+    border-radius: 6px;
+    border-left: 3px solid #ef6c00;
+    font-size: 0.9em;
+    font-style: italic;
+}
+
+.error-message {
+    background-color: #ffebee;
+    color: #c62828;
+    padding: 8px 12px;
+    margin: 4px 0;
+    border-radius: 8px;
+    border-left: 4px solid #c62828;
+    font-family: monospace;
+    white-space: pre-wrap;
 }
 
 
