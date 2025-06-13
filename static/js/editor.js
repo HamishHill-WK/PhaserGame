@@ -19,6 +19,14 @@ document.addEventListener('DOMContentLoaded', function() {
     // Handle save button click
     document.getElementById('save-code').addEventListener('click', function() {
         const code = editor.getValue();
+
+            console.log('=== SAVE DEBUG ===');
+    console.log('Code length:', code.length);
+    console.log('Number of lines:', code.split('\n').length);
+    console.log('Ends with newline:', code.endsWith('\n'));
+    console.log('Ends with multiple newlines:', /\n{2,}$/.test(code));
+    console.log('Last 100 chars:', JSON.stringify(code.slice(-100)));
+    
         
         fetch("/save-code", {
             method: "POST",
@@ -119,7 +127,7 @@ function loadGameScript() {
     });
     
     // Handle reload button click
-    document.getElementById('reload-game').addEventListener('click', function() {
-        location.reload();
-    });
+    // document.getElementById('reload-game').addEventListener('click', function() {
+    //     location.reload();
+    // });
 }

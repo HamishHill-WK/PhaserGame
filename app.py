@@ -22,17 +22,32 @@ def index():
 def save_code():
     try:
         data = request.get_json()
+        #print("Received data:", data)  # Debugging line to check received data
         code = data.get("code")
+        
+        #print("Code to save:", code)  # Debugging line to check code content
+        code_lines = code.split('\n')
+        print(f"Number of lines: {len(code_lines)}")
+
+        
         file_name = data.get("file")
         
         # Validate file name to prevent directory traversal
         if file_name != "game.js":
             return jsonify({"success": False, "error": "Invalid file name"})
+
+
         
         # Save the code
         file_path = os.path.join(app.static_folder, "js", file_name)
-        with open(file_path, "w") as f:
+        with open(file_path, "w", encoding="utf-8", newline='') as f:
             f.write(code)
+        
+        print(f"Code saved to {file_path}")  # Debugging line to confirm save location
+        
+        
+        # Print a success message with the number of lines saved
+        print(f"Successfully saved {len(code_lines)} lines of code to {file_name}")
         
         return jsonify({"success": True})
     except Exception as e:
