@@ -11,7 +11,11 @@
             <div id="game-container"></div>
             <div class="controls">
                 <button id="restart-button">Restart Game</button>
-                <p>Use your mouse to control the paddle</p>
+                <p>Use your mouse to control the paddle. Click to launch the ball.</p>
+            </div>
+            <div id="debug-console-output">
+                <p>Debug Console Output:</p>
+                <div id="debug-console"></div>
             </div>
         </div>
         
@@ -68,10 +72,11 @@
                 <div class="tabs" id="tabs">
                     <button id="code-button" class="tab-button not-active" onclick="switchTab('editor')" data-tab="editor">Code</button>
                     <button id="console-button" class="tab-button selected-tab-button" onclick="switchTab('console-container')" data-tab="console-container">Console</button>
-                </div>
-                <div class="editor-actions">
+                </div>                <div class="editor-actions">
                     <button id="save-code">Save Changes</button>
                     <button id="reload-game">Reload Game</button>
+                    <button id="clear-chat">Clear Chat</button>
+                    <button id="clear-debug" onclick="clearDebugConsole()">Clear Debug</button>
                 </div>
             </div>            <div class="tab-content hidden" id="editor"></div>
             <div class="console-container tab-content" id="console-container">
@@ -92,7 +97,7 @@
         //const supabaseUrl = 'https://svfxmonmxhfnksfozzdp.supabase.co'
         //const supabaseKey = 'your-anon-key-here' // Replace with your actual anon key
         //const supabaseClient = createClient(supabaseUrl, supabaseKey) 
-    </script>
+    </script>    <script src="{{ url_for('static', filename='js/error-handler.js') }}"></script>
     <script src="{{ url_for('static', filename='js/game.js') }}"></script>
     <script src="{{ url_for('static', filename='js/editor.js') }}"></script>
     <script src="{{ url_for('static', filename='js/dropdown.js') }}"></script>

@@ -23,6 +23,19 @@ window.onclick = function(event) {
 
 // Handle checkbox changes
 document.addEventListener('DOMContentLoaded', function() {
+    // Load chat history when page loads
+    loadChatFromStorage();
+    
+    // Add clear chat button functionality
+    const clearChatButton = document.getElementById('clear-chat');
+    if (clearChatButton) {
+        clearChatButton.addEventListener('click', function() {
+            if (confirm('Are you sure you want to clear the chat history?')) {
+                clearChatHistory();
+            }
+        });
+    }
+    
     Object.keys(taskDependencies).forEach(taskId => {
         const checkbox = document.getElementById(taskId);
         if (checkbox) {
@@ -47,12 +60,17 @@ const taskDependencies = {
     'task5': ['task1', 'task2', 'task3', 'task4'] // Task 5 depends on all previous
 };
 
-function addMessage(message, className) {
+function addMessage(message, className, skipSave = false) {
     const messageDiv = document.createElement('div');
     messageDiv.className = className;
     messageDiv.textContent = message;
     outputDiv.appendChild(messageDiv);
     scrollToBottom();
+    
+    // Don't save system messages about restoration to avoid recursion
+    if (!skipSave && !message.includes('Chat history restored')) {
+        saveChatToStorage();
+    }
 }
 
 function scrollToBottom() {
@@ -155,4 +173,50 @@ function switchTab(tabName) {
             console.log(`Button for tab ${button.dataset.tab} is no longer active`);
         }
     });
+}
+
+// Chat persistence functionality
+const CHAT_STORAGE_KEY = 'phaserGameChatHistory';
+
+function saveChatToStorage() {
+    const messages = [];
+    const messageElements = outputDiv.querySelectorAll('div[class*="message"], div[class*="player-input"], div[class*="npc-response"], div[class*="system-message"], div[class*="error-message"]');
+    
+    messageElements.forEach(element => {
+        messages.push({
+            text: element.textContent,
+            className: element.className
+        });
+    });
+    
+    localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages));
+}
+
+function loadChatFromStorage() {
+    const savedMessages = localStorage.getItem(CHAT_STORAGE_KEY);
+    if (savedMessages) {
+        try {
+            const messages = JSON.parse(savedMessages);
+            if (messages.length > 0) {
+                messages.forEach(message => {
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = message.className;
+                    messageDiv.textContent = message.text;
+                    outputDiv.appendChild(messageDiv);
+                });
+                scrollToBottom();
+                  // Add a subtle notification that chat was restored
+                setTimeout(() => {
+                    addMessage(`Chat history restored (${messages.length} messages)`, 'system-message', true);
+                }, 100);
+            }
+        } catch (error) {
+            console.error('Error loading chat history:', error);
+        }
+    }
+}
+
+function clearChatHistory() {
+    localStorage.removeItem(CHAT_STORAGE_KEY);
+    outputDiv.innerHTML = '';
 }
