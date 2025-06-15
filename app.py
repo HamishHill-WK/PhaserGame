@@ -85,8 +85,6 @@ def LLMrequest():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
-
-
 if __name__ == "__main__":
     if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
         webbrowser.open('http://127.0.0.1:5001')

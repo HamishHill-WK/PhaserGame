@@ -2,6 +2,26 @@ const inputForm = document.getElementById('input-form');
 const userInput = document.getElementById('user-input');
 const outputDiv = document.getElementById('console-output');
 
+
+function addMessage(message, className, skipSave = false) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = className;
+    messageDiv.textContent = message;
+    outputDiv.appendChild(messageDiv);
+    scrollToBottom();
+    
+    // Don't save system messages about restoration to avoid recursion
+    if (!skipSave && !message.includes('Chat history restored')) {
+        saveChatToStorage();
+    }
+}
+
+function scrollToBottom() {
+    if (outputDiv) {
+        outputDiv.scrollTop = outputDiv.scrollHeight;
+    }
+}
+
 inputForm.addEventListener('submit', function(e) {
     e.preventDefault();
     

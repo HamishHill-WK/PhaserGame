@@ -57,24 +57,6 @@ const taskDependencies = {
     'task5': ['task1', 'task2', 'task3', 'task4'] // Task 5 depends on all previous
 };
 
-function addMessage(message, className, skipSave = false) {
-    const messageDiv = document.createElement('div');
-    messageDiv.className = className;
-    messageDiv.textContent = message;
-    outputDiv.appendChild(messageDiv);
-    scrollToBottom();
-    
-    // Don't save system messages about restoration to avoid recursion
-    if (!skipSave && !message.includes('Chat history restored')) {
-        saveChatToStorage();
-    }
-}
-
-function scrollToBottom() {
-    if (outputDiv) {
-        outputDiv.scrollTop = outputDiv.scrollHeight;
-    }
-}
 
 function resetTasks() {
     const t1 = document.getElementById('task1')
