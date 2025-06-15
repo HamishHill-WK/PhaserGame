@@ -90,7 +90,7 @@ const CHAT_STORAGE_KEY = 'phaserGameChatHistory';
 //chat is stored in the browser so it is unique to each user
 function saveChatToStorage() {
     const messages = [];
-    const messageElements = outputDiv.querySelectorAll('div[class*="message"], div[class*="player-input"], div[class*="npc-response"], div[class*="system-message"], div[class*="error-message"]');
+    const messageElements = outputDiv.querySelectorAll('div[class*="message"], div[class*="player-input"], div[class*="llm-response"], div[class*="system-message"], div[class*="error-message"]');
     
     messageElements.forEach(element => {
         messages.push({
