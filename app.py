@@ -1,15 +1,15 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, redirect, url_for
 import os 
 import webbrowser
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key")
 
-@app.route("/gamenoAIassistant")
-def gameNoAIassistant():        
-    return render_template('game-no-AI-assistant.html')
+@app.route("/openexperiment", methods=["GET", "POST"])
+def openexperiment():
+    return redirect(url_for('gameAIassistant'))
 
-@app.route("/gameAIassistant")
+@app.route("/gameAIassistant", methods=["GET", "POST"])
 def gameAIassistant():        
     return render_template('game-AI-assistant.html')
 
@@ -17,6 +17,20 @@ def gameAIassistant():
 @app.route("/index")
 def index():
     return render_template('index.html')
+
+# Add the survey route
+@app.route("/opensurvey", methods=["GET", "POST"])
+def opensurvey():
+    consent = request.form.get('consent')
+    print(f"Consent received: {consent}")  # Debugging line to check consent value
+    print(f"signature: {request.form.get('signature')}")  # Debugging line to check signature value
+    print(f"date: {request.form.get('date')}")  # Debugging line to check date value
+    if consent == 'agree':
+        return redirect(url_for('survey'))
+    
+@app.route("/survey")
+def survey():
+    return render_template('survey.html')
 
 @app.route("/save-code", methods=["POST"])
 def save_code():
@@ -49,6 +63,29 @@ def save_code():
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
+    
+@app.route("/LLMrequest", methods=["POST"])
+def LLMrequest():
+    try:
+        data = request.get_json()
+        print("Received data:", data)  # Debugging line to check received data
+        code = data.get("code")
+        
+        # Print the code received
+        print("Code received for LLM request:", code)
+        
+        # Here you would typically process the code with your LLM and return a response
+        # For now, we will just return a dummy response
+        response = {
+            "message": "This is a dummy response from the LLM.",
+            "code": code  # Echoing back the received code for demonstration
+        }
+        
+        return jsonify(response)
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+
 
 if __name__ == "__main__":
     if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
