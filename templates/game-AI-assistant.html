@@ -23,51 +23,72 @@
             <div class="editor-header">
                 <div class="dropdown-container">
                     <button class="dropdown-btn" onclick="toggleDropdown()">Tasks ▼</button>
-                    <div id="dropdown-content" class="dropdown-content">
-                        <div class="dropdown-content-container" id="task1-container">
+                    <div id="dropdown-content" class="dropdown-content">                        <div class="dropdown-content-container" id="task1-container">
                             <label class="checkbox-item">
-                                <input type="checkbox" id="task1"> Task 1
+                                <input type="checkbox" id="task1"> Score System
                                 <div class="checkbox-description" id="task1-description">
-                                    <p>Task 1: Implement the basic game mechanics.</p>
+                                    <p><strong>Score System:</strong> Score should increase when blocks are broken, current score should be displayed in text on screen.</p>
                                 </div>
                             </label>
                         </div>
                         <div class="dropdown-content-container" id="task2-container">
                             <label class="checkbox-item">
-                                <input type="checkbox" id="task2"> Task 2
+                                <input type="checkbox" id="task2"> Reset Blocks
                                 <div class="checkbox-description" id="task2-description">
-                                    <p>Task 2: Implement the basic game mechanics.</p>
+                                    <p><strong>Reset Blocks:</strong> Once all blocks have been cleared the level should restart.</p>
                                 </div>
                             </label>
                         </div>
                         <div class="dropdown-content-container" id="task3-container">
                             <label class="checkbox-item">
-                                <input type="checkbox" id="task3"> Task 3
+                                <input type="checkbox" id="task3"> Increase Ball Speed
                                 <div class="checkbox-description" id="task3-description">
-                                    <p>Task 3: Implement the basic game mechanics.</p>
+                                    <p><strong>Increase Ball Speed:</strong> Ball should speed up as blocks decrease.</p>
                                 </div>
                             </label>
                         </div>
                         <div class="dropdown-content-container" id="task4-container">
                             <label class="checkbox-item">
-                                <input type="checkbox" id="task4"> Task 4
+                                <input type="checkbox" id="task4"> Lives System
                                 <div class="checkbox-description" id="task4-description">
-                                    <p>Task 4: Implement the basic game mechanics.</p>
+                                    <p><strong>Lives System:</strong> Player should have 3 lives, lives should be lost if the ball falls off the bottom of the screen.</p>
+                                </div>
+                            </label>
+                        </div>                        <div class="dropdown-content-container" id="task5-container">
+                            <label class="checkbox-item">
+                                <input type="checkbox" id="task5"> Death Screen
+                                <div class="checkbox-description" id="task5-description">
+                                    <p><strong>Death Screen:</strong> If the ball falls off the bottom of the screen when the player has 0 lives then a game over message should be displayed on screen. If a score system has been implemented then the final score should be shown with the game over message.</p>
                                 </div>
                             </label>
                         </div>
-                        <div class="dropdown-content-container" id="task5-container">
+                        <div class="dropdown-content-container" id="task6-container">
                             <label class="checkbox-item">
-                                <input type="checkbox" id="task5"> Task 5
-                                <div class="checkbox-description" id="task5-description">
-                                    <p>Task 5: Implement the basic game mechanics.</p>
+                                <input type="checkbox" id="task6"> Life Item Drop
+                                <div class="checkbox-description" id="task6-description">
+                                    <p><strong>Life Item Drop:</strong> Random chance that blocks will drop a life pickup when broken. Pickups should fall down the screen and increase lives by 1 when the player touches them.</p>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="dropdown-content-container" id="task7-container">
+                            <label class="checkbox-item">
+                                <input type="checkbox" id="task7"> Score Multiplier Item
+                                <div class="checkbox-description" id="task7-description">
+                                    <p><strong>Score Multiplier Item:</strong> Random chance that blocks will drop a score multiplier pickup. When activated, double the score gained for 30 seconds.</p>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="dropdown-content-container" id="task8-container">
+                            <label class="checkbox-item">
+                                <input type="checkbox" id="task8"> Extra Ball Item
+                                <div class="checkbox-description" id="task8-description">
+                                    <p><strong>Extra Ball Item:</strong> Random chance that blocks will drop an extra ball pickup. When activated, spawn a second ball. While there are 2 balls, the player shouldn't lose a life when the first goes off screen, only if there are no balls on screen.</p>
                                 </div>
                             </label>
                         </div>
                     </div>
-                </div>
-                <div class="dropdown-current-task" id="current-task">
-                    <span id="current-task-text">Current Task: Task 1</span>
+                </div>                <div class="dropdown-current-task" id="current-task">
+                    <span id="current-task-text">Current Task: Score System</span>
                 </div>
                 <div class="tabs" id="tabs">
                     <button id="code-button" class="tab-button not-active" onclick="switchTab('editor')" data-tab="editor">Code</button>

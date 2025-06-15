@@ -54,7 +54,10 @@ const taskDependencies = {
     'task2': ['task1'], // Task 2 depends on Task 1
     'task3': ['task1', 'task2'], // Task 3 depends on Tasks 1 & 2
     'task4': ['task1', 'task2', 'task3'], // Task 4 depends on 1, 2 & 3
-    'task5': ['task1', 'task2', 'task3', 'task4'] // Task 5 depends on all previous
+    'task5': ['task1', 'task2', 'task3', 'task4'], // Task 5 depends on all previous
+    'task6': ['task1', 'task2', 'task3', 'task4', 'task5'], // Task 6 depends on all previous
+    'task7': ['task1', 'task2', 'task3', 'task4', 'task5', 'task6'], // Task 7 depends on all previous
+    'task8': ['task1', 'task2', 'task3', 'task4', 'task5', 'task6', 'task7'] // Task 8 depends on all previous
 };
 
 
@@ -78,6 +81,18 @@ function resetTasks() {
     const t5 = document.getElementById('task5');
     t5.checked = false;
     t5.disabled = true; // Disable Task 5 initially
+    
+    const t6 = document.getElementById('task6');
+    t6.checked = false;
+    t6.disabled = true; // Disable Task 6 initially
+    
+    const t7 = document.getElementById('task7');
+    t7.checked = false;
+    t7.disabled = true; // Disable Task 7 initially
+    
+    const t8 = document.getElementById('task8');
+    t8.checked = false;
+    t8.disabled = true; // Disable Task 8 initially
 }
 
 function handleTaskChange(taskId, currentCheckedStatus, enabled, event) {
