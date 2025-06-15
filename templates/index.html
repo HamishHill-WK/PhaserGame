@@ -1,13 +1,102 @@
+<!-- templates/consent.html -->
 <!DOCTYPE html>
 <html>
 <head>
-    <title>About - Breakout Game</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <title>Research Study Consent</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/consent.css') }}">
+    <style>
+
+    </style>
 </head>
 <body>
-    <h1>About This Game</h1>
-    <p>This is a Phaser.js implementation of the classic Breakout game.</p>
-    <a href="{{ url_for('gameNoAIassistant') }}">Back to Game</a>
-    <a href="{{ url_for('gameAIassistant') }}">Back to ai Game</a>
+    <div class="consent-container">
+        <h1>Research Study: Game Modification Through Natural Language</h1>
+        
+        {% if error %}
+        <div class="error">{{ error }}</div>
+        {% endif %}
+        
+        <div class="consent-text">
+            <div class="consent-section">
+                <h3>Study Purpose</h3>
+                <p>You are being invited to participate in a research study investigating how Large Language Models (LLMs) can help users modify games through natural language descriptions. This study aims to explore how AI assistance can lower barriers to game development.</p>
+            </div>
+            
+            <div class="consent-section">
+                <h3>What You Will Do</h3>
+                <p>You will:</p>
+                <ul>
+                    <li>Complete a brief pre-screening survey (5 minutes)</li>
+                    <li>Interact with a game development tool that uses AI assistance</li>
+                    <li>Modify a simple Breakout game using natural language commands</li>
+                    <li>Complete tasks designed to test the tool's effectiveness</li>
+                </ul>
+                <p>Total time commitment: approximately 30-45 minutes.</p>
+            </div>
+            
+            <div class="consent-section">
+                <h3>Data Collection</h3>
+                <p>We will collect:</p>
+                <ul>
+                    <li>Demographic information (age group, programming experience, etc.)</li>
+                    <li>Your interactions with the AI chat interface</li>
+                    <li>Code modifications you make to the game</li>
+                    <li>Task completion data and timestamps</li>
+                </ul>
+                <p><strong>No personally identifiable information will be collected.</strong> All data is anonymized and assigned a random session ID.</p>
+            </div>
+            
+            <div class="consent-section">
+                <h3>Risks and Benefits</h3>
+                <p>There are minimal risks associated with this study. The primary risk is the time commitment required to participate. There are no direct benefits to you, but your participation will help advance research in AI-assisted game development tools.</p>
+            </div>
+            
+            <div class="consent-section">
+                <h3>Privacy and Confidentiality</h3>
+                <p>Your data will be stored securely and used only for research purposes. Data may be published in academic papers or presentations, but will be aggregated and anonymized. You may withdraw from the study at any time by closing your browser.</p>
+            </div>
+            
+            <div class="consent-section">
+                <h3>Contact Information</h3>
+                <p>If you have questions about this study, please contact:<br>
+                Researcher: [Your Name]<br>
+                Email: [Your Email]<br>
+                Institution: [Your Institution]</p>
+            </div>
+        </div>
+        
+        <form method="POST" action="{{ url_for('opensurvey') }}">
+            <div class="consent-checkbox">
+                <label>
+                    <input type="checkbox" id="consent-check" onchange="toggleSubmit()"> 
+                    I have read and understood the information above. I consent to participate in this research study and understand that I can withdraw at any time.
+                </label>
+            </div>
+            
+            <div class="signature-section">
+                <label for="signature">Signature (type your name):</label>
+                <input type="text" id="signature" name="signature" required>
+            </div>
+
+            <div class="date-section">
+                <label for="date">Date:</label>
+                <input type="date" id="date" name="date" required>
+            </div>
+
+            <div class="consent-buttons">
+                <button type="submit" name="consent" value="agree" id="agree-btn" class="agree-btn" disabled>
+                    I Agree to Participate
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <script>
+        function toggleSubmit() {
+            const checkbox = document.getElementById('consent-check');
+            const button = document.getElementById('agree-btn');
+            button.disabled = !checkbox.checked;
+        }
+    </script>
 </body>
 </html>

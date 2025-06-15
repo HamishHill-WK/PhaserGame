@@ -1,7 +1,4 @@
 // Dropdown functionality
-const inputForm = document.getElementById('input-form');
-const userInput = document.getElementById('user-input');
-const outputDiv = document.getElementById('console-output');
 
 function toggleDropdown() {
     const dropdown = document.getElementById("dropdown-content");
@@ -173,50 +170,4 @@ function switchTab(tabName) {
             console.log(`Button for tab ${button.dataset.tab} is no longer active`);
         }
     });
-}
-
-// Chat persistence functionality
-const CHAT_STORAGE_KEY = 'phaserGameChatHistory';
-
-function saveChatToStorage() {
-    const messages = [];
-    const messageElements = outputDiv.querySelectorAll('div[class*="message"], div[class*="player-input"], div[class*="npc-response"], div[class*="system-message"], div[class*="error-message"]');
-    
-    messageElements.forEach(element => {
-        messages.push({
-            text: element.textContent,
-            className: element.className
-        });
-    });
-    
-    localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages));
-}
-
-function loadChatFromStorage() {
-    const savedMessages = localStorage.getItem(CHAT_STORAGE_KEY);
-    if (savedMessages) {
-        try {
-            const messages = JSON.parse(savedMessages);
-            if (messages.length > 0) {
-                messages.forEach(message => {
-                    const messageDiv = document.createElement('div');
-                    messageDiv.className = message.className;
-                    messageDiv.textContent = message.text;
-                    outputDiv.appendChild(messageDiv);
-                });
-                scrollToBottom();
-                  // Add a subtle notification that chat was restored
-                setTimeout(() => {
-                    addMessage(`Chat history restored (${messages.length} messages)`, 'system-message', true);
-                }, 100);
-            }
-        } catch (error) {
-            console.error('Error loading chat history:', error);
-        }
-    }
-}
-
-function clearChatHistory() {
-    localStorage.removeItem(CHAT_STORAGE_KEY);
-    outputDiv.innerHTML = '';
 }

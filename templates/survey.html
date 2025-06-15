@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Research Survey</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/survey.css') }}">
+</head>
+<body>
+    <div class="survey-container">
+        <h1 class="survey-title">Research Survey</h1>
+        
+        <form method="POST" action="{{ url_for('openexperiment') }}">
+            <div class="question-group">
+                <label class="question-label">1. What is your age range?</label>
+                <div class="radio-group">
+                    <div class="radio-item">
+                        <input type="radio" id="age1" name="age" value="18-25">
+                        <label for="age1">18-25</label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" id="age2" name="age" value="26-35">
+                        <label for="age2">26-35</label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" id="age3" name="age" value="36-45">
+                        <label for="age3">36-45</label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" id="age4" name="age" value="46+">
+                        <label for="age4">46+</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="question-group">
+                <label class="question-label">2. How would you rate your programming experience?</label>
+                <div class="radio-group">
+                    <div class="radio-item">
+                        <input type="radio" id="exp1" name="experience" value="beginner">
+                        <label for="exp1">Beginner</label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" id="exp2" name="experience" value="intermediate">
+                        <label for="exp2">Intermediate</label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" id="exp3" name="experience" value="advanced">
+                        <label for="exp3">Advanced</label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" id="exp4" name="experience" value="expert">
+                        <label for="exp4">Expert</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="question-group">
+                <label class="question-label" for="background">3. Please describe your educational/professional background:</label>
+                <textarea id="background" name="background" class="form-control" rows="4" placeholder="Enter your background here..."></textarea>
+            </div>
+
+            <div class="question-group">
+                <label class="question-label">4. Have you used AI coding assistants before?</label>
+                <div class="radio-group">
+                    <div class="radio-item">
+                        <input type="radio" id="ai1" name="ai_experience" value="yes">
+                        <label for="ai1">Yes</label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" id="ai2" name="ai_experience" value="no">
+                        <label for="ai2">No</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="question-group">
+                <label class="question-label" for="expectations">5. What do you hope to learn from this study?</label>
+                <textarea id="expectations" name="expectations" class="form-control" rows="3" placeholder="Your expectations..."></textarea>
+            </div>
+
+            <button type="submit" class="submit-btn">Continue to Experiment</button>
+        </form>
+    </div>
+</body>
+</html>
