@@ -22,13 +22,10 @@
         if (entries.length > 100) {
             debugConsole.removeChild(entries[0]);
         }
-    }
-
-    function clearDebugConsole() {
+    }    function clearDebugConsole() {
         const debugConsole = document.getElementById('debug-console');
         if (debugConsole) {
             debugConsole.innerHTML = '';
-            //addToDebugConsole('Debug console cleared', 'info');
         }
     }
 
@@ -60,11 +57,9 @@
     let gameInitialized = false;
     let initCheckInterval;
 
-    function monitorGameInitialization() {
-        initCheckInterval = setInterval(function() {
+    function monitorGameInitialization() {        initCheckInterval = setInterval(function() {
             if (window.game && !gameInitialized) {
                 gameInitialized = true;
-               // addToDebugConsole('Phaser game detected and initialized', 'success');
                 
                 // Setup Phaser-specific error monitoring
                 if (window.game.events) {
@@ -73,32 +68,18 @@
                         addToDebugConsole(errorMsg, 'error');
                     });
                 }
-                
-                // Monitor scene events
+                  // Monitor scene events
                 if (window.game.scene && window.game.scene.scenes[0]) {
                     const scene = window.game.scene.scenes[0];
-                    
-                    // Monitor scene lifecycle
-                    // scene.events.on('create', function() {
-                    //     addToDebugConsole('Game scene created successfully', 'success');
-                    // });
-                    
-                    // scene.events.on('destroy', function() {
-                    //     addToDebugConsole('Game scene destroyed', 'info');
-                    // });
                 }
                 
                 clearInterval(initCheckInterval);
             }
         }, 100);
-        
-        // Stop checking after 10 seconds
+          // Stop checking after 10 seconds
         setTimeout(function() {
             if (initCheckInterval) {
                 clearInterval(initCheckInterval);
-                // if (!gameInitialized) {
-                //     addToDebugConsole('Game initialization timeout - no Phaser game detected', 'error');
-                // }
             }
         }, 10000);
     }
@@ -113,10 +94,9 @@
         const errorMessage = args.join(' ');
         if (errorMessage.toLowerCase().includes('game') || 
             errorMessage.toLowerCase().includes('phaser') || 
-            errorMessage.toLowerCase().includes('scene')) {
-            addToDebugConsole(`Console Error: ${errorMessage}`, 'error');
+            errorMessage.toLowerCase().includes('scene')) {            addToDebugConsole(`Console Error: ${errorMessage}`, 'error');
         }
-    };    // Monitor for syntax errors by checking if game.js loaded properly
+    };
     function checkGameScriptLoaded() {
         // Check if expected game objects exist
         setTimeout(function() {
@@ -137,11 +117,9 @@
         scripts.forEach(script => {
             script.addEventListener('error', function(e) {
                 addToDebugConsole('Failed to load game.js - check for syntax errors', 'error');
-            });
-        });
+            });        });
     }    // Initialize monitoring when DOM is ready
     document.addEventListener('DOMContentLoaded', function() {
-        //addToDebugConsole('Error monitoring system initialized', 'info');
         monitorScriptLoading();
         monitorGameInitialization();
         checkGameScriptLoaded();

@@ -62,6 +62,8 @@ function reloadGame() {
     const gameContainer = document.getElementById('game-container');
     gameContainer.innerHTML = '';
     
+    clearDebugConsole();
+
     // Reload and re-execute the game script
     fetch("/static/js/game.js")
         .then(response => response.text())

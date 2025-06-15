@@ -29,15 +29,12 @@ def save_code():
         code_lines = code.split('\n')
         print(f"Number of lines: {len(code_lines)}")
 
-        
         file_name = data.get("file")
         
         # Validate file name to prevent directory traversal
         if file_name != "game.js":
             return jsonify({"success": False, "error": "Invalid file name"})
 
-
-        
         # Save the code
         file_path = os.path.join(app.static_folder, "js", file_name)
         with open(file_path, "w", encoding="utf-8", newline='') as f:
