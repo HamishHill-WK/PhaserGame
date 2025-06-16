@@ -46,6 +46,26 @@
             </div>
 
             <div class="question-group">
+                <div>Which game engines have you used? (Select all that apply)</div>
+                <div class="languages-grid" id="game_engines">
+                    <label><input type="checkbox" name="engines" value="unity"> Unity</label>
+                    <label><input type="checkbox" name="engines" value="unreal"> Unreal Engine</label>
+                    <label><input type="checkbox" name="engines" value="godot"> Godot</label>
+                    <label><input type="checkbox" name="engines" value="gamemaker"> GameMaker Studio</label>
+                    <label><input type="checkbox" name="engines" value="rpgmaker"> RPG Maker</label>
+                    <label><input type="checkbox" name="engines" value="other"> Other (specify below)</label>
+                </div>
+                
+                <div class="other-language-input" style="margin-top: 15px;">
+                    <input type="text" name="other_engine" placeholder="If you selected 'Other', please specify..." style="width: 100%; padding: 8px;">
+                </div>
+                
+                <div style="margin-top: 15px;">
+                    <label><input type="checkbox" name="engines" value="none"> I have no game engine experience</label>
+                </div>
+            </div>
+
+            <div class="question-group">
                 <label for="programming_experience_detailed">What is your experience of programming? <span class="required">*</span></label>
                 <select name="programming_experience_detailed" id="programming_experience_detailed" required onchange="toggleProgrammingPosition()">
                     <option value="">Select your experience level</option>
