@@ -1,6 +1,7 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for
+from flask import Flask, render_template, request, jsonify, redirect, url_for, session
 import os 
 import webbrowser
+from datetime import datetime
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key")
@@ -84,6 +85,10 @@ def LLMrequest():
         return jsonify(response)
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
+
+@app.route("/debrief", methods=["GET", "POST"])
+def debrief():
+    return render_template('debrief.html')
 
 if __name__ == "__main__":
     if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':

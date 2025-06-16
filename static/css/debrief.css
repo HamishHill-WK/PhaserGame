@@ -1,0 +1,27 @@
+body {
+    font-family: Arial, sans-serif;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 50px;
+    background-color: #f5f5f5;
+}
+
+.debrief-container {
+    background: white;
+    padding: 40px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+.debrief-title {
+    color: #333;
+    margin-bottom: 30px;
+    font-size: 32px;
+}
+
+.debrief-message {
+    color: #666;
+    font-size: 18px;
+    line-height: 1.6;
+}

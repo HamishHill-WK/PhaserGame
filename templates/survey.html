@@ -82,9 +82,9 @@
             </div>
 
             <div class="question-group">
-                <label for="programming_languages">Which programming languages have you used? (Select all that apply)</label>
-                <div class="languages-grid">
-                    <label><input type="checkbox" name="languages" value="javascript"> JavaScript</label>
+                <div>Which programming languages have you used? (Select all that apply)</div>
+                <div class="languages-grid" id="programming_languages">
+                    <label><input type="checkbox" name="languages" value="javascript" onchange='toggleJavaScriptUsage()'> JavaScript</label>
                     <label><input type="checkbox" name="languages" value="python"> Python</label>
                     <label><input type="checkbox" name="languages" value="java"> Java</label>
                     <label><input type="checkbox" name="languages" value="cpp"> C++</label>
@@ -135,8 +135,29 @@
                 </div>
             </div>
 
+            <div class="question-group" id="javascript-usage-group" style="display: none;">
+                <div>Have you ever used Phaser.js?</div>
+                <div class="radio-group">
+                    <input type="radio" name="used_phaser" value="yes" id="phaser_yes" 
+                        {{ 'checked' if form_data and form_data.uses_ai_tools == 'yes' }} 
+                        onchange="togglePhaserUsage()">
+                    <label for="phaser_yes">Yes</label>
+                </div>
+                <div class="radio-group">
+                    <input type="radio" name="used_phaser" value="no" id="phaser_no" 
+                        {{ 'checked' if form_data and form_data.uses_ai_tools == 'no' }} 
+                        onchange="togglePhaserUsage()">
+                    <label for="phaser_no">No</label>
+                </div>
+            </div>
+
+            <div class="question-group conditional-field" id="phaser-details-group" style="display: none;">
+                <label>Please provide further details about your Phaser.js experience:</label>
+                <textarea name="phaser_details" id="phaser_details" placeholder="e.g., types of games built, features used...">{{ form_data.phaser_details if form_data else '' }}</textarea>
+            </div>
+
             <div class="question-group">
-                <label for="uses_ai_tools">Do you use Generative AI tools in your workflow?</label>
+                <label>Do you use Generative AI tools in your workflow?</label>
                 <div class="radio-group">
                     <input type="radio" name="uses_ai_tools" value="yes" id="ai_yes" 
                         {{ 'checked' if form_data and form_data.uses_ai_tools == 'yes' }} 

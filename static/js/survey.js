@@ -39,16 +39,40 @@ function toggleAIUsage() {
     }
 }
 
+function toggleJavaScriptUsage() {
+    const usesJS = document.querySelector('input[name="languages"][value="javascript"]:checked');
+    const jsUsageGroup = document.getElementById('javascript-usage-group');
+    console.log(usesJS);
+    if (usesJS) {
+        jsUsageGroup.style.display = 'block';
+    } else {
+        jsUsageGroup.style.display = 'none';
+    }
+}
+
+function togglePhaserUsage(){
+    const usesPhaser = document.querySelector('input[name="used_phaser"]:checked')?.value;
+    const phaserUsageGroup = document.getElementById('phaser-details-group');
+
+    if (usesPhaser === 'yes') {
+        phaserUsageGroup.style.display = 'block';
+    } else {
+        phaserUsageGroup.style.display = 'none';
+    }
+}
+
 // Handle core languages "none" option
 document.addEventListener('DOMContentLoaded', function() {
     const noneCheckbox = document.querySelector('input[value="none"][name="core_languages"]');
     const otherCheckboxes = document.querySelectorAll('input[name="core_languages"]:not([value="none"])');
     
-    noneCheckbox.addEventListener('change', function() {
-        if (this.checked) {
-            otherCheckboxes.forEach(cb => cb.checked = false);
-        }
-    });
+    if (noneCheckbox) {
+        noneCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                otherCheckboxes.forEach(cb => cb.checked = false);
+            }
+        });
+    }
     
     otherCheckboxes.forEach(checkbox => {
         checkbox.addEventListener('change', function() {
@@ -62,4 +86,6 @@ document.addEventListener('DOMContentLoaded', function() {
     toggleGameDevPosition();
     toggleProgrammingPosition();
     toggleAIUsage();
+    toggleJavaScriptUsage();
+    togglePhaserUsage();
 });

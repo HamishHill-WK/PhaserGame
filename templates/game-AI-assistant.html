@@ -18,9 +18,13 @@
                 <div id="debug-console"></div>
             </div>
         </div>
-        
-        <div class="editor-container">
+          <div class="editor-container">
             <div class="editor-header">
+                <div class="timer-container">
+                    <div class="timer-display" id="experiment-timer">
+                        Time Remaining: <span id="timer-text">60:00</span>
+                    </div>
+                </div>
                 <div class="dropdown-container">
                     <button class="dropdown-btn" onclick="toggleDropdown()">Tasks ▼</button>
                     <div id="dropdown-content" class="dropdown-content">                        <div class="dropdown-content-container" id="task1-container">
@@ -117,8 +121,8 @@
         //const supabaseUrl = 'https://svfxmonmxhfnksfozzdp.supabase.co'
         //const supabaseKey = 'your-anon-key-here' // Replace with your actual anon key
         //const supabaseClient = createClient(supabaseUrl, supabaseKey) 
-    </script>    
-    <script src="{{ url_for('static', filename='js/error-handler.js') }}"></script>
+    </script>      <script src="{{ url_for('static', filename='js/error-handler.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/timer.js') }}"></script>
     <script src="{{ url_for('static', filename='js/game.js') }}"></script>
     <script src="{{ url_for('static', filename='js/editor.js') }}"></script>
     <script src="{{ url_for('static', filename='js/dropdown.js') }}"></script>
