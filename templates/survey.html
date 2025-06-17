@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Research Survey</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/survey.css') }}">
+</head>
+<body>
+    <div class="survey-container">
+        <h1 class="survey-title">Research Survey</h1>
+        
+        <form method="POST" action="{{ url_for('openexperiment') }}">
+            <div class="question-group">
+                <label for="game_dev_experience_detailed">What is your experience of Game development? <span class="required">*</span></label>
+                <select name="game_dev_experience_detailed" id="game_dev_experience_detailed" required onchange="toggleGameDevPosition()">
+                    <option value="">Select your experience level</option>
+                    <option value="none" {{ 'selected' if form_data and form_data.game_dev_experience_detailed == 'none' }}>None</option>
+                    <option value="limited" {{ 'selected' if form_data and form_data.game_dev_experience_detailed == 'limited' }}>Limited</option>
+                    <option value="moderate" {{ 'selected' if form_data and form_data.game_dev_experience_detailed == 'moderate' }}>Moderate</option>
+                    <option value="advanced" {{ 'selected' if form_data and form_data.game_dev_experience_detailed == 'advanced' }}>Advanced</option>
+                    <option value="professional" {{ 'selected' if form_data and form_data.game_dev_experience_detailed == 'professional' }}>Professional</option>
+                </select>
+            </div>
+
+            <div class="question-group conditional-field" id="gamedev-position-group" style="display: none;">
+                <label for="gamedev_position">If you selected professional, what is the highest position you have worked in?</label>
+                <select name="gamedev_position" id="gamedev_position">
+                    <option value="">Select position</option>
+                    <option value="junior" {{ 'selected' if form_data and form_data.gamedev_position == 'junior' }}>Junior</option>
+                    <option value="mid" {{ 'selected' if form_data and form_data.gamedev_position == 'mid' }}>Mid</option>
+                    <option value="senior" {{ 'selected' if form_data and form_data.gamedev_position == 'senior' }}>Senior</option>
+                    <option value="lead" {{ 'selected' if form_data and form_data.gamedev_position == 'lead' }}>Lead</option>
+                </select>
+            </div>
+
+            <div class="question-group">
+                <label for="gamedev_details">Please provide further details about your game development experience:</label>
+                <textarea name="gamedev_details" id="gamedev_details" placeholder="e.g., types of games worked on, engines used, team size...">{{ form_data.gamedev_details if form_data else '' }}</textarea>
+            </div>
+
+            <div class="question-group">
+                <label for="gamedev_years">How many years have you practiced Game development?</label>
+                <input type="number" name="gamedev_years" id="gamedev_years" min="0" max="50" step="0.5" 
+                    value="{{ form_data.gamedev_years if form_data else '' }}" 
+                    placeholder="e.g., 2.5">
+                <small style="display: block; margin-top: 5px; color: #666;">Enter 0 if no experience, decimals allowed (e.g., 1.5 for 1.5 years)</small>
+            </div>
+
+            <div class="question-group">
+                <div>Which game engines have you used? (Select all that apply)</div>
+                <div class="languages-grid" id="game_engines">
+                    <label><input type="checkbox" name="engines" value="unity"> Unity</label>
+                    <label><input type="checkbox" name="engines" value="unreal"> Unreal Engine</label>
+                    <label><input type="checkbox" name="engines" value="godot"> Godot</label>
+                    <label><input type="checkbox" name="engines" value="gamemaker"> GameMaker Studio</label>
+                    <label><input type="checkbox" name="engines" value="rpgmaker"> RPG Maker</label>
+                    <label><input type="checkbox" name="engines" value="other"> Other (specify below)</label>
+                </div>
+                
+                <div class="other-language-input" style="margin-top: 15px;">
+                    <input type="text" name="other_engine" placeholder="If you selected 'Other', please specify..." style="width: 100%; padding: 8px;">
+                </div>
+                
+                <div style="margin-top: 15px;">
+                    <label><input type="checkbox" name="engines" value="none"> I have no game engine experience</label>
+                </div>
+            </div>
+
+            <div class="question-group">
+                <label for="programming_experience_detailed">What is your experience of programming? <span class="required">*</span></label>
+                <select name="programming_experience_detailed" id="programming_experience_detailed" required onchange="toggleProgrammingPosition()">
+                    <option value="">Select your experience level</option>
+                    <option value="none" {{ 'selected' if form_data and form_data.programming_experience_detailed == 'none' }}>None</option>
+                    <option value="limited" {{ 'selected' if form_data and form_data.programming_experience_detailed == 'limited' }}>Limited</option>
+                    <option value="moderate" {{ 'selected' if form_data and form_data.programming_experience_detailed == 'moderate' }}>Moderate</option>
+                    <option value="advanced" {{ 'selected' if form_data and form_data.programming_experience_detailed == 'advanced' }}>Advanced</option>
+                    <option value="professional" {{ 'selected' if form_data and form_data.programming_experience_detailed == 'professional' }}>Professional</option>
+                </select>
+            </div>
+
+            <div class="question-group conditional-field" id="programming-position-group" style="display: none;">
+                <label for="programming_position">If you selected professional, what is the highest position you have worked in?</label>
+                <select name="programming_position" id="programming_position">
+                    <option value="">Select position</option>
+                    <option value="junior" {{ 'selected' if form_data and form_data.programming_position == 'junior' }}>Junior</option>
+                    <option value="mid" {{ 'selected' if form_data and form_data.programming_position == 'mid' }}>Mid</option>
+                    <option value="senior" {{ 'selected' if form_data and form_data.programming_position == 'senior' }}>Senior</option>
+                    <option value="lead" {{ 'selected' if form_data and form_data.programming_position == 'lead' }}>Lead</option>
+                </select>
+            </div>
+
+            <div class="question-group">
+                <label for="programming_details">Please provide further details about your programming experience:</label>
+                <textarea name="programming_details" id="programming_details" placeholder="e.g., industries worked in, types of applications built, specializations...">{{ form_data.programming_details if form_data else '' }}</textarea>
+            </div>
+
+            <div class="question-group">
+                <label for="programming_years">How many years have you practiced programming?</label>
+                <input type="number" name="programming_years" id="programming_years" min="0" max="50" step="0.5" 
+                    value="{{ form_data.programming_years if form_data else '' }}" 
+                    placeholder="e.g., 5.5">
+                <small style="display: block; margin-top: 5px; color: #666;">Enter 0 if no experience, decimals allowed (e.g., 3.5 for 3.5 years)</small>
+            </div>
+
+            <div class="question-group">
+                <div>Which programming languages have you used? (Select all that apply)</div>
+                <div class="languages-grid" id="programming_languages">
+                    <label><input type="checkbox" name="languages" value="javascript" onchange='toggleJavaScriptUsage()'> JavaScript</label>
+                    <label><input type="checkbox" name="languages" value="python"> Python</label>
+                    <label><input type="checkbox" name="languages" value="java"> Java</label>
+                    <label><input type="checkbox" name="languages" value="cpp"> C++</label>
+                    <label><input type="checkbox" name="languages" value="csharp"> C#</label>
+                    <label><input type="checkbox" name="languages" value="c"> C</label>
+                    <label><input type="checkbox" name="languages" value="typescript"> TypeScript</label>
+                    <label><input type="checkbox" name="languages" value="php"> PHP</label>
+                    <label><input type="checkbox" name="languages" value="html_css"> HTML/CSS</label>
+                    <label><input type="checkbox" name="languages" value="swift"> Swift</label>
+                    <label><input type="checkbox" name="languages" value="kotlin"> Kotlin</label>
+                    <label><input type="checkbox" name="languages" value="dart"> Dart</label>
+                    <label><input type="checkbox" name="languages" value="objective_c"> Objective-C</label>
+                    <label><input type="checkbox" name="languages" value="rust"> Rust</label>
+                    <label><input type="checkbox" name="languages" value="go"> Go</label>
+                    <label><input type="checkbox" name="languages" value="ruby"> Ruby</label>
+                    <label><input type="checkbox" name="languages" value="r"> R</label>
+                    <label><input type="checkbox" name="languages" value="matlab"> MATLAB</label>
+                    <label><input type="checkbox" name="languages" value="sql"> SQL</label>
+                    <label><input type="checkbox" name="languages" value="bash"> Bash/Shell</label>
+                    <label><input type="checkbox" name="languages" value="powershell"> PowerShell</label>
+                    <label><input type="checkbox" name="languages" value="gdscript"> GDScript</label>
+                    <label><input type="checkbox" name="languages" value="lua"> Lua</label>
+                    <label><input type="checkbox" name="languages" value="hlsl_glsl"> HLSL/GLSL</label>
+                    <label><input type="checkbox" name="languages" value="haskell"> Haskell</label>
+                    <label><input type="checkbox" name="languages" value="scala"> Scala</label>
+                    <label><input type="checkbox" name="languages" value="clojure"> Clojure</label>
+                    <label><input type="checkbox" name="languages" value="fsharp"> F#</label>
+                    <label><input type="checkbox" name="languages" value="elixir"> Elixir</label>
+                    <label><input type="checkbox" name="languages" value="julia"> Julia</label>
+                    <label><input type="checkbox" name="languages" value="zig"> Zig</label>
+                    <label><input type="checkbox" name="languages" value="crystal"> Crystal</label>
+                    <label><input type="checkbox" name="languages" value="assembly"> Assembly</label>
+                    <label><input type="checkbox" name="languages" value="visual_basic"> Visual Basic</label>
+                    <label><input type="checkbox" name="languages" value="pascal"> Pascal</label>
+                    <label><input type="checkbox" name="languages" value="delphi"> Delphi</label>
+                    <label><input type="checkbox" name="languages" value="fortran"> FORTRAN</label>
+                    <label><input type="checkbox" name="languages" value="cobol"> COBOL</label>
+                    <label><input type="checkbox" name="languages" value="perl"> Perl</label>
+                    <label><input type="checkbox" name="languages" value="other"> Other (specify below)</label>
+                </div>
+                
+                <div class="other-language-input" style="margin-top: 15px;">
+                    <input type="text" name="other_language" placeholder="If you selected 'Other', please specify..." style="width: 100%; padding: 8px;">
+                </div>
+                
+                <div style="margin-top: 15px;">
+                    <label><input type="checkbox" name="languages" value="none"> I have no programming experience</label>
+                </div>
+            </div>
+
+            <div class="question-group" id="javascript-usage-group" style="display: none;">
+                <div>Have you ever used Phaser.js?</div>
+                <div class="radio-group">
+                    <input type="radio" name="used_phaser" value="yes" id="phaser_yes" 
+                        {{ 'checked' if form_data and form_data.uses_ai_tools == 'yes' }} 
+                        onchange="togglePhaserUsage()">
+                    <label for="phaser_yes">Yes</label>
+                </div>
+                <div class="radio-group">
+                    <input type="radio" name="used_phaser" value="no" id="phaser_no" 
+                        {{ 'checked' if form_data and form_data.uses_ai_tools == 'no' }} 
+                        onchange="togglePhaserUsage()">
+                    <label for="phaser_no">No</label>
+                </div>
+            </div>
+
+            <div class="question-group conditional-field" id="phaser-details-group" style="display: none;">
+                <label>Please provide further details about your Phaser.js experience:</label>
+                <textarea name="phaser_details" id="phaser_details" placeholder="e.g., types of games built, features used...">{{ form_data.phaser_details if form_data else '' }}</textarea>
+            </div>
+
+            <div class="question-group">
+                <label>Do you use Generative AI tools in your workflow?</label>
+                <div class="radio-group">
+                    <input type="radio" name="uses_ai_tools" value="yes" id="ai_yes" 
+                        {{ 'checked' if form_data and form_data.uses_ai_tools == 'yes' }} 
+                        onchange="toggleAIUsage()">
+                    <label for="ai_yes">Yes</label>
+                </div>
+                <div class="radio-group">
+                    <input type="radio" name="uses_ai_tools" value="no" id="ai_no" 
+                        {{ 'checked' if form_data and form_data.uses_ai_tools == 'no' }} 
+                        onchange="toggleAIUsage()">
+                    <label for="ai_no">No</label>
+                </div>
+            </div>
+
+            <div class="question-group conditional-field" id="ai-usage-group" style="display: none;">
+                <label>If yes, how do you use Generative AI in your workflow? (Select all that apply)</label>
+                <div class="ai-usage-grid">
+                    <div class="ai-category">
+                        <h4>Creation</h4>
+                        <label><input type="checkbox" name="ai_usage" value="creation_artefact"> Generate a new artefact to be used directly or with some modification</label>
+                        <label><input type="checkbox" name="ai_usage" value="creation_idea"> Generate an idea, to be used indirectly</label>
+                    </div>
+                    
+                    <div class="ai-category">
+                        <h4>Information</h4>
+                        <label><input type="checkbox" name="ai_usage" value="info_search"> Seek a fact or piece of information</label>
+                        <label><input type="checkbox" name="ai_usage" value="info_learn"> Learn about a new topic more broadly</label>
+                        <label><input type="checkbox" name="ai_usage" value="info_summarise"> Generate a shorter version of content that describes important elements</label>
+                        <label><input type="checkbox" name="ai_usage" value="info_analyse"> Discover a new insight about information or data</label>
+                    </div>
+                    
+                    <div class="ai-category">
+                        <h4>Advice</h4>
+                        <label><input type="checkbox" name="ai_usage" value="advice_improve"> Generate a better version</label>
+                        <label><input type="checkbox" name="ai_usage" value="advice_guidance"> Get guidance about how to make a decision</label>
+                        <label><input type="checkbox" name="ai_usage" value="advice_validation"> Check whether an artefact satisfies a set of rules or constraints</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="question-group conditional-field" id="ai-details-group" style="display: none;">
+                <label for="ai_usage_details">Please provide further details about how you use Generative AI:</label>
+                <textarea name="ai_usage_details" id="ai_usage_details" placeholder="e.g., specific tools used (ChatGPT, Copilot, etc.), frequency of use, typical tasks...">{{ form_data.ai_usage_details if form_data else '' }}</textarea>
+            </div>
+
+            <button type="submit" class="submit-btn">Continue to Experiment</button>
+        </form>
+    </div>
+    <script src="{{ url_for('static', filename='js/survey.js') }}"></script>
+</body>
+</html>

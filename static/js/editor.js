@@ -19,6 +19,14 @@ document.addEventListener('DOMContentLoaded', function() {
     // Handle save button click
     document.getElementById('save-code').addEventListener('click', function() {
         const code = editor.getValue();
+
+            console.log('=== SAVE DEBUG ===');
+    console.log('Code length:', code.length);
+    console.log('Number of lines:', code.split('\n').length);
+    console.log('Ends with newline:', code.endsWith('\n'));
+    console.log('Ends with multiple newlines:', /\n{2,}$/.test(code));
+    console.log('Last 100 chars:', JSON.stringify(code.slice(-100)));
+    
         
         fetch("/save-code", {
             method: "POST",
@@ -36,12 +44,52 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
-    
-    // Handle reload button click
+      // Handle reload button click
     document.getElementById('reload-game').addEventListener('click', function() {
-        location.reload();
+        reloadGame();
     });
 });
+
+// Function to reload game without refreshing the page
+function reloadGame() {
+    // Destroy existing Phaser game instance if it exists
+    if (window.game) {
+        window.game.destroy(true);
+        window.game = null;
+    }
+    
+    // Clear the game container
+    const gameContainer = document.getElementById('game-container');
+    gameContainer.innerHTML = '';
+    
+    clearDebugConsole();
+
+    // Reload and re-execute the game script
+    fetch("/static/js/game.js")
+        .then(response => response.text())
+        .then(gameCode => {
+            try {
+                // Execute the new game code in a way that recreates the game
+                eval(gameCode);
+                
+                // Add success message to chat
+                if (typeof addMessage === 'function') {
+                    addMessage('Game reloaded successfully!', 'system-message');
+                }
+            } catch (error) {
+                console.error('Error executing game code:', error);
+                if (typeof addMessage === 'function') {
+                    addMessage('Error reloading game: ' + error.message, 'error-message');
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching game code:', error);
+            if (typeof addMessage === 'function') {
+                addMessage('Error fetching game code: ' + error.message, 'error-message');
+            }
+        });
+}
 
 function loadGameScript() {
     const editor = ace.edit("editor");
@@ -81,7 +129,7 @@ function loadGameScript() {
     });
     
     // Handle reload button click
-    document.getElementById('reload-game').addEventListener('click', function() {
-        location.reload();
-    });
+    // document.getElementById('reload-game').addEventListener('click', function() {
+    //     location.reload();
+    // });
 }

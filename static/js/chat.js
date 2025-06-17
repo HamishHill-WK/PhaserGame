@@ -1,3 +1,27 @@
+const inputForm = document.getElementById('input-form');
+const userInput = document.getElementById('user-input');
+const outputDiv = document.getElementById('console-output');
+
+
+function addMessage(message, className, skipSave = false) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = className;
+    messageDiv.textContent = message;
+    outputDiv.appendChild(messageDiv);
+    scrollToBottom();
+    
+    // Don't save system messages about restoration to avoid recursion
+    if (!skipSave && !message.includes('Chat history restored')) {
+        saveChatToStorage();
+    }
+}
+
+function scrollToBottom() {
+    if (outputDiv) {
+        outputDiv.scrollTop = outputDiv.scrollHeight;
+    }
+}
+
 inputForm.addEventListener('submit', function(e) {
     e.preventDefault();
     
@@ -10,48 +34,26 @@ inputForm.addEventListener('submit', function(e) {
     // Clear input field
     userInput.value = '';
     
-    // Close any existing EventSource
-    if (window.eventSource) {
-        window.eventSource.close();
-    }
-    
-    // Record start time for simulation
-    const simulationStartTime = performance.now();
-    let messageCount = 0;
-    
-    // Create a new EventSource for streaming
-    console.log('Input:', input);
-    const url = `/api/simulate_stream?simulation_input=${encodeURIComponent(input)}&npc_a=${encodeURIComponent(npcDropdownA.value)}&npc_b=${encodeURIComponent(npcDropdownB.value)}`;
-    const eventSource = new EventSource(url);
-    window.eventSource = eventSource;
-    
-    // Handle incoming message events
-    eventSource.onmessage = function(event) {
-        try {
-            const data = JSON.parse(event.data);
-            // Add the appropriate NPC's message to the display
-            addMessage(`${data.speaker}: ${data.message}`, 'npc-response');
-            messageCount++;
-        } catch (error) {
-            console.error('Error parsing SSE message:', error);
-            addMessage(event.data, 'npc-response'); // Fallback to raw data
+    fetch('/LLMrequest', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ input: input })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            addMessage('Error: ' + data.error, 'error-message');
+        } else {
+            // Add LLM response to display
+            addMessage(data.message, 'llm-response');
         }
-    };
-    
-    // Handle end of conversation
-    eventSource.addEventListener('end', function() {
-        console.log('Conversation complete');
-        const simulationTime = performance.now() - simulationStartTime;
-        addMessage(`Simulation completed in ${simulationTime.toFixed(2)}ms (${messageCount} messages)`, 'system-message timing-info');
-        eventSource.close();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        addMessage('Error: ' + error.message, 'error-message');
     });
-    
-    // Handle errors
-    eventSource.onerror = function() {
-        console.error('SSE connection error');
-        addMessage('Connection to server lost.', 'system-message');
-        eventSource.close();
-    };
 });
 
 // Auto-resize textarea
@@ -101,3 +103,46 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initial resize
     autoResize();
 });
+
+
+// Chat persistence functionality
+const CHAT_STORAGE_KEY = 'phaserGameChatHistory';
+//chat is stored in the browser so it is unique to each user
+function saveChatToStorage() {
+    const messages = [];
+    const messageElements = outputDiv.querySelectorAll('div[class*="message"], div[class*="player-input"], div[class*="llm-response"], div[class*="system-message"], div[class*="error-message"]');
+    
+    messageElements.forEach(element => {
+        messages.push({
+            text: element.textContent,
+            className: element.className
+        });
+    });
+    
+    localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages));
+}
+
+function loadChatFromStorage() {
+    const savedMessages = localStorage.getItem(CHAT_STORAGE_KEY);
+    if (savedMessages) {
+        try {
+            const messages = JSON.parse(savedMessages);
+            if (messages.length > 0) {
+                messages.forEach(message => {
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = message.className;
+                    messageDiv.textContent = message.text;
+                    outputDiv.appendChild(messageDiv);
+                });
+                scrollToBottom();
+            }
+        } catch (error) {
+            console.error('Error loading chat history:', error);
+        }
+    }
+}
+
+function clearChatHistory() {
+    localStorage.removeItem(CHAT_STORAGE_KEY);
+    outputDiv.innerHTML = '';
+}
