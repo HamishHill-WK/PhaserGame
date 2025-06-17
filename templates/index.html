@@ -77,7 +77,7 @@
                 <label for="signature">Signature (type your name):</label>
                 <input type="text" id="signature" name="signature" required>
             </div>
-
+            
             <div class="date-section">
                 <label for="date">Date:</label>
                 <input type="date" id="date" name="date" required>
@@ -90,13 +90,20 @@
             </div>
         </form>
     </div>
-    
     <script>
         function toggleSubmit() {
             const checkbox = document.getElementById('consent-check');
             const button = document.getElementById('agree-btn');
             button.disabled = !checkbox.checked;
         }
+        
+        // Set today's date as default
+        document.addEventListener('DOMContentLoaded', function() {
+            const dateField = document.getElementById('date');
+            const today = new Date();
+            const formattedDate = today.toISOString().split('T')[0];
+            dateField.value = formattedDate;
+        });
     </script>
 </body>
 </html>
