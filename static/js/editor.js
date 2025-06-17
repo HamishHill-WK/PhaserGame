@@ -128,8 +128,4 @@ function loadGameScript() {
         });
     });
     
-    // Handle reload button click
-    // document.getElementById('reload-game').addEventListener('click', function() {
-    //     location.reload();
-    // });
 }
