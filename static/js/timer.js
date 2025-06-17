@@ -104,8 +104,19 @@ class ExperimentTimer {
 
 // Initialize timer when page loads
 document.addEventListener('DOMContentLoaded', function() {
-    // Only start timer on the game page
-    if (document.getElementById('experiment-timer')) {
+    // Check for development mode
+    const isDevelopment = window.location.hostname === 'localhost' || 
+                         window.location.hostname === '127.0.0.1' ||
+                         window.location.search.includes('dev=true');
+    
+    if (document.getElementById('experiment-timer') && !isDevelopment) {
         window.experimentTimer = new ExperimentTimer();
+    } else if (isDevelopment) {
+        console.log('Timer disabled for development');
+        // Hide timer display in dev mode
+        const timerElement = document.getElementById('experiment-timer');
+        if (timerElement) {
+            timerElement.style.display = 'none';
+        }
     }
 });

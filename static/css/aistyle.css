@@ -120,6 +120,16 @@
     border-left: 4px solid #7b1fa2;
 }
 
+.llm-code{
+    background-color: #e8f5e9;
+    color: #2e7d32;
+    padding: 8px 12px;
+    margin: 4px 0;
+    border-radius: 8px;
+    border-left: 4px solid #2e7d32;
+    font-family: monospace;
+}
+
 .system-message {
     background-color: #fff3e0;
     color: #ef6c00;

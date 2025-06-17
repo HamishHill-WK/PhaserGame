@@ -2,6 +2,8 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for, s
 import os 
 import webbrowser
 from datetime import datetime
+import assistant
+
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key")
@@ -77,10 +79,39 @@ def LLMrequest():
         
         # Here you would typically process the code with your LLM and return a response
         # For now, we will just return a dummy response
-        response = {
-            "message": "This is a dummy response from the LLM.",
-            "code": code  # Echoing back the received code for demonstration
-        }
+        
+        response = assistant.get_response().output_text  # Assuming this function interacts with the LLM
+        
+        response_segments = []
+        
+        # Extract code between triple backticks if present
+        if "```" in response:
+            # Find all code blocks
+            code_blocks = []
+            parts = response.split("```")
+            
+            for p in parts:
+                if "javascript" in p:
+                    # If the part contains 'javascript', it's likely a code block
+                    code_blocks.append(p.split("javascript")[1].strip())
+                else:
+                    # Otherwise, it's just a regular text segment
+                    response_segments.append(p.strip())
+            
+            # If we found code blocks, update the response
+            if code_blocks:
+                response = {
+                    "message": response_segments,
+                    "code": code_blocks
+                }
+        
+        print(type(response))  # Ensure response is a string or dict as expected
+        
+        print("Response from LLM:", response)  # Debugging line to check LLM response
+        # response = {
+        #     "message": "This is a dummy response from the LLM.",
+        #     "code": code  # Echoing back the received code for demonstration
+        # }
         
         return jsonify(response)
     except Exception as e:
