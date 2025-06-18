@@ -13,7 +13,24 @@ class SimpleSecurityValidator:
             r'\beval\s*\(',
             r'\bnew\s+Function\s*\(',
             r'\bsetTimeout\s*\(\s*[\'"`]',
-            r'\bsetInterval\s*\(\s*[\'"`]'
+            r'\bsetInterval\s*\(\s*[\'"`]',
+            r'window\s*\[\s*[\'"`]eval[\'"`]\s*\]',
+            r'globalThis\s*\[\s*[\'"`]eval[\'"`]\s*\]',
+            r'document\s*\.\s*write\s*\(',
+            r'innerHTML\s*=',
+            r'outerHTML\s*=',
+            r'insertAdjacentHTML\s*\(',
+            r'fetch\s*\(',
+            r'XMLHttpRequest',
+            r'WebSocket\s*\(',
+            r'Object\s*\.\s*prototype',
+            r'__proto__\s*=',
+            r'constructor\s*\.\s*prototype',
+            r'import\s*\(',
+            r'require\s*\(',
+            r'process\s*\.',
+            r'global\s*\.',
+            r'Buffer\s*\.'
         ]
     
     def validate(self, code):
@@ -82,9 +99,6 @@ def index():
 @app.route("/opensurvey", methods=["GET", "POST"])
 def opensurvey():
     consent = request.form.get('consent')
-    print(f"Consent received: {consent}")  # Debugging line to check consent value
-    print(f"signature: {request.form.get('signature')}")  # Debugging line to check signature value
-    print(f"date: {request.form.get('date')}")  # Debugging line to check date value
     if consent == 'agree':
         return redirect(url_for('survey'))
     
@@ -96,7 +110,6 @@ def survey():
 def save_code():
     try:
         data = request.get_json()
-        #print("Received data:", data)  # Debugging line to check received data
         code = data.get("code")
         
         # Validate code safety
