@@ -61,12 +61,6 @@ def save_code():
         with open(file_path, "w", encoding="utf-8", newline='') as f:
             f.write(code)
         
-        print(f"Code saved to {file_path}")  # Debugging line to confirm save location
-        
-        
-        # Print a success message with the number of lines saved
-        print(f"Successfully saved {len(code_lines)} lines of code to {file_name}")
-        
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
@@ -74,10 +68,6 @@ def save_code():
 @app.route("/LLMrequest", methods=["POST"])
 def LLMrequest():
     try:
-        data = request.get_json()
-        print("Received data:", data)  # Debugging line to check received data
-        code = data.get("code")
-        
         response = assistant.get_response().output_text  # Assuming this function interacts with the LLM
         
         response_segments = {}
