@@ -1,14 +1,7 @@
 from openai import OpenAI
-import os
-# import tiktoken
+from dotenv import load_dotenv
 
-# Get the environment variable
-api_key = os.getenv("OPENAI_API_KEY")
-
-# Check if it exists
-if not api_key:
-    print("API key not found!")
-
+load_dotenv()
 client = OpenAI()
 
 def get_response(user_message=""):

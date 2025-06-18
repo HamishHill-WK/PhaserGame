@@ -82,7 +82,7 @@ def LLMrequest():
         
         response = assistant.get_response().output_text  # Assuming this function interacts with the LLM
         
-        response_segments = []
+        response_segments = {}
         
         # Extract code between triple backticks if present
         if "```" in response:
@@ -90,13 +90,14 @@ def LLMrequest():
             code_blocks = []
             parts = response.split("```")
             
-            for p in parts:
+            for i, p in enumerate(parts):
                 if "javascript" in p:
                     # If the part contains 'javascript', it's likely a code block
-                    code_blocks.append(p.split("javascript")[1].strip())
+                    #code_blocks.append(p.split("javascript")[1].strip())
+                    response_segments[i] = ["code", p.split("javascript")[1].strip()]
                 else:
                     # Otherwise, it's just a regular text segment
-                    response_segments.append(p.strip())
+                    response_segments[i] = ["text", p.strip()]
             
             # If we found code blocks, update the response
             if code_blocks:
@@ -105,15 +106,17 @@ def LLMrequest():
                     "code": code_blocks
                 }
         
-        print(type(response))  # Ensure response is a string or dict as expected
+        print(type(response_segments))  # Ensure response is a string or dict as expected
         
-        print("Response from LLM:", response)  # Debugging line to check LLM response
+        print("Response from LLM:", response_segments)  # Debugging line to check LLM response
         # response = {
         #     "message": "This is a dummy response from the LLM.",
         #     "code": code  # Echoing back the received code for demonstration
         # }
         
-        return jsonify(response)
+        reponse_list = list(response_segments.values())
+        
+        return jsonify(reponse_list)
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 

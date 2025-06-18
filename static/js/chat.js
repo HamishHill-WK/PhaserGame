@@ -8,7 +8,6 @@ function addMessage(message, className) {
     messageDiv.textContent = message;
     outputDiv.appendChild(messageDiv);
     scrollToBottom();
-    
     saveChatToStorage();
 }
 
@@ -43,8 +42,15 @@ inputForm.addEventListener('submit', function(e) {
             addMessage('Error: ' + data.error, 'error-message');
         } else {
             // Add LLM response to display
-            addMessage(data.message, 'llm-response');
-            addMessage(data.code, 'llm-code'); 
+            console.log('LLM Response:', typeof(data), data);
+            data.forEach(element => {
+                if (element[0] === 'text') {
+                    addMessage(element[1], 'llm-response');
+                }
+                if (element[0] === 'code') {
+                    addMessage(element[1], 'llm-code');
+                }
+            });
         }
     })
     .catch(error => {
@@ -60,8 +66,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // ...existing code...
     function autoResize() {
         const textarea = document.getElementById('user-input');
-        
-        
         const scrollHeight = textarea.scrollHeight;
         const minHeight = 100;
         const maxHeight = 200; // Set this to what you want (much smaller than 450px)
@@ -75,8 +79,6 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             textarea.style.overflowY = 'hidden';
         }
-        
-        console.log('ScrollHeight:', scrollHeight, 'NewHeight:', newHeight);
     }
     
     textarea.addEventListener('keydown', function(e) {
@@ -89,7 +91,6 @@ document.addEventListener('DOMContentLoaded', function() {
             textarea.value = ''; // Clear input after submission
             textarea.style.height = '100px'; // Reset height to initial value
         }
-
     });
 
     textarea.addEventListener('input', autoResize);
