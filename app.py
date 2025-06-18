@@ -3,81 +3,10 @@ import os
 import webbrowser
 from datetime import datetime
 import assistant
-import re
-import esprima  # This actually works
-
-class SimpleSecurityValidator:
-    def __init__(self):
-        # These patterns actually work and are tested
-        self.critical_patterns = [
-            r'\beval\s*\(',
-            r'\bnew\s+Function\s*\(',
-            r'\bsetTimeout\s*\(\s*[\'"`]',
-            r'\bsetInterval\s*\(\s*[\'"`]',
-            r'window\s*\[\s*[\'"`]eval[\'"`]\s*\]',
-            r'globalThis\s*\[\s*[\'"`]eval[\'"`]\s*\]',
-            r'document\s*\.\s*write\s*\(',
-            r'innerHTML\s*=',
-            r'outerHTML\s*=',
-            r'insertAdjacentHTML\s*\(',
-            r'fetch\s*\(',
-            r'XMLHttpRequest',
-            r'WebSocket\s*\(',
-            r'Object\s*\.\s*prototype',
-            r'__proto__\s*=',
-            r'constructor\s*\.\s*prototype',
-            r'import\s*\(',
-            r'require\s*\(',
-            r'process\s*\.',
-            r'global\s*\.',
-            r'Buffer\s*\.'
-        ]
-    
-    def validate(self, code):
-        violations = []
-        
-        # 1. Basic pattern matching (fast, reliable)
-        for pattern in self.critical_patterns:
-            if re.search(pattern, code, re.IGNORECASE):
-                violations.append(f"Dangerous pattern detected: {pattern}")
-        
-        # 2. AST parsing (this actually works with esprima)
-        try:
-            ast = esprima.parseScript(code)
-            ast_violations = self._check_ast(ast)
-            violations.extend(ast_violations)
-        except Exception as e:
-            violations.append(f"Code parsing failed: {str(e)}")
-        
-        return {
-            'is_safe': len(violations) == 0,
-            'violations': violations
-        }
-    
-    def _check_ast(self, ast):
-        # Simple AST traversal that actually works
-        violations = []
-        
-        def traverse(node):
-            if isinstance(node, dict):
-                if node.get('type') == 'CallExpression':
-                    callee = node.get('callee', {})
-                    if (callee.get('type') == 'Identifier' and 
-                        callee.get('name') in ['eval', 'Function']):
-                        violations.append(f"Dangerous function call: {callee.get('name')}")
-                
-                for value in node.values():
-                    if isinstance(value, (dict, list)):
-                        traverse(value)
-            elif isinstance(node, list):
-                for item in node:
-                    traverse(item)
-        
-        traverse(ast)
-        return violations
+import secval
 
 # This actually works in Flask
-validator = SimpleSecurityValidator()
+validator = secval.SimpleSecurityValidator()
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key")
@@ -149,12 +78,6 @@ def LLMrequest():
         print("Received data:", data)  # Debugging line to check received data
         code = data.get("code")
         
-        # Print the code received
-        print("Code received for LLM request:", code)
-        
-        # Here you would typically process the code with your LLM and return a response
-        # For now, we will just return a dummy response
-        
         response = assistant.get_response().output_text  # Assuming this function interacts with the LLM
         
         response_segments = {}
@@ -168,7 +91,6 @@ def LLMrequest():
             for i, p in enumerate(parts):
                 if "javascript" in p:
                     # If the part contains 'javascript', it's likely a code block
-                    #code_blocks.append(p.split("javascript")[1].strip())
                     response_segments[i] = ["code", p.split("javascript")[1].strip()]
                 else:
                     # Otherwise, it's just a regular text segment
@@ -180,15 +102,7 @@ def LLMrequest():
                     "message": response_segments,
                     "code": code_blocks
                 }
-        
-        print(type(response_segments))  # Ensure response is a string or dict as expected
-        
-        print("Response from LLM:", response_segments)  # Debugging line to check LLM response
-        # response = {
-        #     "message": "This is a dummy response from the LLM.",
-        #     "code": code  # Echoing back the received code for demonstration
-        # }
-        
+                
         reponse_list = list(response_segments.values())
         
         return jsonify(reponse_list)
