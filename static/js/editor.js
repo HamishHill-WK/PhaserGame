@@ -1,5 +1,10 @@
+let secureExecutor;
+
 // Initialize the Ace editor
 document.addEventListener('DOMContentLoaded', function() {
+
+    secureExecutor = new SecureGameExecutor();
+
     const editor = ace.edit("editor");
     if (!editor) {
         console.error("Failed to initialize Ace editor.");
@@ -7,7 +12,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     editor.setTheme("ace/theme/monokai");
     editor.session.setMode("ace/mode/javascript");
-    
+
     // Fetch current game.js content
     fetch("/static/js/game.js")
         .then(response => response.text())
@@ -15,19 +20,18 @@ document.addEventListener('DOMContentLoaded', function() {
             editor.setValue(data);
             editor.clearSelection();
         });
-        
+
     // Handle save button click
     document.getElementById('save-code').addEventListener('click', function() {
         const code = editor.getValue();
 
-            console.log('=== SAVE DEBUG ===');
-    console.log('Code length:', code.length);
-    console.log('Number of lines:', code.split('\n').length);
-    console.log('Ends with newline:', code.endsWith('\n'));
-    console.log('Ends with multiple newlines:', /\n{2,}$/.test(code));
-    console.log('Last 100 chars:', JSON.stringify(code.slice(-100)));
-    
-        
+        try {
+            secureExecutor.validateCode(code);
+        } catch (error) {
+            alert("Code validation failed: " + error.message);
+            return;
+        }
+
         fetch("/save-code", {
             method: "POST",
             headers: {
@@ -42,6 +46,10 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 alert("Error saving code: " + data.error);
             }
+        })
+         .catch(error => {
+            console.error('Save error:', error);
+            alert("Error saving code: " + error.message);
         });
     });
       // Handle reload button click
@@ -70,7 +78,7 @@ function reloadGame() {
         .then(gameCode => {
             try {
                 // Execute the new game code in a way that recreates the game
-                eval(gameCode);
+                 secureExecutor.executeSecurely(gameCode);
                 
                 // Add success message to chat
                 if (typeof addMessage === 'function') {
