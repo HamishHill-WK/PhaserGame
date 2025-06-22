@@ -1,5 +1,38 @@
-from app import db
 from datetime import datetime
+from flask_sqlalchemy import SQLAlchemy
+import os
+
+# Create database instance
+db = SQLAlchemy()
+
+def configure_database(app):
+    """Configure database settings and initialize with Flask app"""
+    
+    # Database configuration - PostgreSQL for AWS RDS
+    DATABASE_URL = os.environ.get('DATABASE_URL') 
+    
+        # Fallback to SQLite for testing if no PostgreSQL URL is provided
+    if not DATABASE_URL:
+        DATABASE_URL = 'postgresql://postgres:password@localhost:5432/phaser_research_test'
+        print("⚠️  Using SQLite fallback database for testing")
+
+
+        app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+        app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+        app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+            'pool_size': 10,
+            'pool_recycle': 120,
+            'pool_pre_ping': True,
+            'connect_args': {
+                'sslmode': 'require'  # AWS RDS requires SSL
+            }
+        }
+        
+    # Initialize database with app
+    db.init_app(app)
+    
+    return db
+
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -13,6 +46,7 @@ class User(db.Model):
 
 class Survey(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    session_id = db.Column(db.String(100), nullable=False)  # Link to user session
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     game_dev_experience = db.Column(db.String(1000))
     programming_experience = db.Column(db.String(1000))
