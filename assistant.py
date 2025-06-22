@@ -4,13 +4,22 @@ from dotenv import load_dotenv
 load_dotenv()
 client = OpenAI()
 
+conversation = []
+
 def get_response(user_message=""):
     code =  get_gamescript()
     
     response = client.responses.create(
         model="gpt-4.1-mini",
-        input="Write a brief explanation of hello world in JavaScript. Include a simple code example.",
+        input=f'{user_message} {code}',
     )
+    
+    conversation.append({
+        "role": "user",
+        "content": user_message,
+        "response": response.output_text
+    })
+    
     return response
 
 def get_gamescript():
