@@ -288,21 +288,42 @@ def submit_survey():
             return jsonify({"success": False, "error": "Consent required before submitting survey"})
         
         # Get form data
-        game_dev_experience = request.form.get('game_dev_experience')
-        programming_experience = request.form.get('programming_experience')
-        languages = request.form.getlist('languages')  # Multiple selections
-        uses_ai_tools = request.form.get('uses_ai_tools') == 'yes'
-        ai_usage_details = request.form.get('ai_usage_details', '')
+        game_dev_experience_description = request.form.get('gamedev_details')
+        game_dev_experience_level = request.form.get('game_dev_experience_detailed')
+        game_dev_proffessional_level = request.form.get('gamedev_position')
+        game_dev_experience_years = request.form.get('gamedev_years', type=float)
+        game_engines = request.form.getlist('engines')  # Multiple selections
         
+        programming_experience_level = request.form.get('programming_experience_detailed')
+        programming_proffessional_level = request.form.get('programming_position')
+        programming_experience_description = request.form.get('programming_details')
+        programming_experience_years = request.form.get('programming_years', type=float)
+        languages = request.form.getlist('languages')  # Multiple selections
+        used_phaser = request.form.get('used_phaser') == 'yes'
+        phaser_experience_description = request.form.get('phaser_details', '')  # Additional details
+        uses_ai_tools = request.form.get('uses_ai_tools') == 'yes'
+        ai_usage_details = request.form.getlist('ai_usage')
+        ai_usage_description = request.form.get('ai_usage_details', '')  # Additional details
+    
         # Save to database with session tracking
         survey_data = Survey(
             session_id=session_id,
             user_id=user_id,  # Link to anonymous user from consent
-            game_dev_experience=game_dev_experience,
-            programming_experience=programming_experience,
-            languages=','.join(languages) if languages else '',  # Convert list to string
+            game_dev_experience_description=game_dev_experience_description,
+            game_dev_experience_level=game_dev_experience_level,
+            game_dev_proffessional_level=game_dev_proffessional_level,
+            game_dev_experience_years=game_dev_experience_years,
+            game_engines=json.dumps(game_engines) if game_engines else '',  # Convert
+            programming_experience_description=programming_experience_description,
+            programming_experience_years=programming_experience_years,
+            programming_experience_level=programming_experience_level,
+            programming_proffessional_level=programming_proffessional_level,
+            languages=json.dumps(languages) if languages else '',  # Store as JSON string            
+            used_phaser=used_phaser,
+            phaser_experience_description=phaser_experience_description,
             uses_ai_tools=uses_ai_tools,
             ai_usage_details=ai_usage_details,
+            ai_tools_description=ai_usage_description,
             submitted_at=datetime.now()
         )
         

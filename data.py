@@ -14,8 +14,6 @@ def configure_database(app):
         # Fallback to SQLite for testing if no PostgreSQL URL is provided
     if not DATABASE_URL:
         DATABASE_URL = 'postgresql://postgres:password@localhost:5432/phaser_research_test'
-        print("⚠️  Using SQLite fallback database for testing")
-
 
         app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
         app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -33,7 +31,6 @@ def configure_database(app):
     
     return db
 
-
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     signed = db.Column(db.String(80), unique=True, nullable=False)
@@ -48,10 +45,23 @@ class Survey(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     session_id = db.Column(db.String(100), nullable=False)  # Link to user session
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
-    game_dev_experience = db.Column(db.String(1000))
-    programming_experience = db.Column(db.String(1000))
-    languages = db.Column(db.Text)  # JSON string of selected languages
+    
+    game_dev_experience_description = db.Column(db.String(1000))
+    game_dev_experience_level = db.Column(db.String(100))  # e.g., Beginner, Intermediate, Advanced
+    game_dev_proffessional_level = db.Column(db.String(100))  # e.g., Hobbyist, Professional
+    game_dev_experience_years = db.Column(db.Float, nullable=True)
+    game_engines = db.Column(db.Text)  # JSON string of selected game engines
+    
+    programming_experience_description = db.Column(db.String(1000))
+    programming_experience_years = db.Column(db.Float, nullable=True)
+    programming_experience_level = db.Column(db.String(100))  # e.g., Beginner, Intermediate, Advanced
+    programming_proffessional_level = db.Column(db.String(100))  # e.g., Hobbyist, Professional
+    programming_languages = db.Column(db.Text)  # JSON string of selected languages
+    used_phaser = db.Column(db.Boolean, default=False)
+    phaser_experience_description = db.Column(db.String(1000))
+    
     uses_ai_tools = db.Column(db.Boolean)
+    ai_tools_description = db.Column(db.String(1000))
     ai_usage_details = db.Column(db.Text)
     submitted_at = db.Column(db.DateTime, default=datetime.utcnow)
 
