@@ -21,8 +21,7 @@ def get_response(user_message="", session_id="default", user_id=None):
     
     response = client.responses.create(
         model="gpt-4.1-mini",
-        input=f'{user_message} {code}',
-
+        input=f'{user_message}'# {code}',
     )
     
     # Store conversation in session-specific list
@@ -33,6 +32,23 @@ def get_response(user_message="", session_id="default", user_id=None):
         "timestamp": datetime.now().isoformat()
     })
     
+# CHECK RATE LIMITS FROM RESPONSE
+    headers = getattr(response, 'headers', {})
+    requests_left = headers.get('x-ratelimit-remaining-requests', 'Unknown')
+    tokens_left = headers.get('x-ratelimit-remaining-tokens', 'Unknown')
+    
+    print(f"📊 Rate Limits - Requests left: {requests_left}, Tokens left: {tokens_left}")
+    
+    
+    print(f"💬 Response: {response}")
+    # WARN IF LOW
+    if requests_left != 'Unknown' and int(requests_left) < 10:
+        print("⚠️ WARNING: Less than 10 requests remaining!")
+    
+    if tokens_left != 'Unknown' and int(tokens_left) < 1000:
+        print("⚠️ WARNING: Less than 1000 tokens remaining!")
+        
+        # Store co    
     # Save to database with user_id
     #save_conversation_to_db(session_id, user_id)
     

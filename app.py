@@ -196,6 +196,9 @@ def LLMrequest():
                     "message": response_segments,
                     "code": code_blocks
                 }
+        else:
+            # If no code blocks, just return the text response
+            response_segments[0] = ["text", response.output_text]
                 
         reponse_list = list(response_segments.values())
         
