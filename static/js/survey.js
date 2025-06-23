@@ -61,7 +61,6 @@ function togglePhaserUsage(){
     }
 }
 
-// Handle core languages "none" option
 document.addEventListener('DOMContentLoaded', function() {
     const noneCheckbox = document.querySelector('input[value="none"][name="core_languages"]');
     const otherCheckboxes = document.querySelectorAll('input[name="core_languages"]:not([value="none"])');

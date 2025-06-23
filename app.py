@@ -8,7 +8,6 @@ import secval
 import uuid
 from data import Survey, ExperimentData, User, configure_database
 
-# This actually works in Flask
 validator = secval.SimpleSecurityValidator()
 
 app = Flask(__name__)
@@ -17,9 +16,9 @@ db = configure_database(app)
 
 errors = []
 
-@app.route("/openexperiment", methods=["GET", "POST"])
-def openexperiment():
-    return redirect(url_for('gameAIassistant'))
+# @app.route("/openexperiment", methods=["GET", "POST"])
+# def openexperiment():
+#     return redirect(url_for('gameAIassistant'))
 
 @app.route("/gameAIassistant", methods=["GET", "POST"])
 def gameAIassistant():
@@ -229,17 +228,18 @@ def debrief():
     
     return render_template('debrief.html')
 
-@app.route("/get-session-info", methods=["GET"])
-def get_session_info():
-    """Get current session information"""
-    session_id = session.get('session_id', 'no_session')
-    conversation_history = assistant.get_conversation(session_id)
+#
+# @app.route("/get-session-info", methods=["GET"])
+# def get_session_info():
+#     """Get current session information"""
+#     session_id = session.get('session_id', 'no_session')
+#     conversation_history = assistant.get_conversation(session_id)
     
-    return jsonify({
-        "session_id": session_id,
-        "conversation_count": len(conversation_history),
-        "has_conversation": len(conversation_history) > 0
-    })
+#     return jsonify({
+#         "session_id": session_id,
+#         "conversation_count": len(conversation_history),
+#         "has_conversation": len(conversation_history) > 0
+#     })
 
 @app.route("/clear-session", methods=["POST"])
 def clear_session():
@@ -332,11 +332,12 @@ def log_consent():
         session_id = session.get('session_id', 'unknown')
         consent_given = request.json.get('consent_given', False)
         user_name = request.json.get('user_name', '')
+        signed_date_form = request.json.get('signed_date', datetime.now().isoformat())
           # Create anonymous user record for consent tracking
         anonymous_user = User(
             signed=user_name,
             participant_code=f"P{uuid.uuid4().hex[:8].upper()}",  # Anonymous participant code
-            signed_date=datetime.now()
+            signed_date=signed_date_form
         )
         
         db.session.add(anonymous_user)
@@ -344,7 +345,6 @@ def log_consent():
         
         # Store user ID in session for linking survey and experiment data
         session['user_id'] = anonymous_user.id
-        
 
         return jsonify({
             "success": True, 

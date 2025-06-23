@@ -8,7 +8,7 @@
     <div class="survey-container">
         <h1 class="survey-title">Research Survey</h1>
         
-        <form method="POST" action="{{ url_for('openexperiment') }}">
+        <form method="POST" action="{{ url_for('submit-survey') }}">
             <div class="question-group">
                 <label for="game_dev_experience_detailed">What is your experience of Game development? <span class="required">*</span></label>
                 <select name="game_dev_experience_detailed" id="game_dev_experience_detailed" required onchange="toggleGameDevPosition()">
