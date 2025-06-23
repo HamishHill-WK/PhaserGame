@@ -95,7 +95,30 @@
             const checkbox = document.getElementById('consent-check');
             const button = document.getElementById('agree-btn');
             button.disabled = !checkbox.checked;
+
         }
+
+        document.getElementById('agree-btn').addEventListener('click', function(event) {
+            const checkbox = document.getElementById('consent-check');
+            if (!checkbox.checked) {
+                event.preventDefault();
+                alert('You must agree to the consent terms before proceeding.');
+            }
+            else {
+                // Optionally, you can add any additional logic here before form submission
+                fetch('/log-consent', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        consent_given: checkbox.checked,
+                        user_name : document.getElementById('signature').value,
+                        signed_date: document.getElementById('date').value
+                    })
+                });
+            }    
+        });
         
         // Set today's date as default
         document.addEventListener('DOMContentLoaded', function() {

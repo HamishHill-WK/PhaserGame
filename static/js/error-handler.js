@@ -38,7 +38,7 @@
         const isGameError = e.filename && e.filename.includes('game.js');
         const errorLocation = isGameError ? 'game.js' : (e.filename || 'unknown');
         
-        const errorMsg = `JavaScript Error in ${errorLocation}: ${e.message} (line ${e.lineno - 11})`;
+        const errorMsg = `JavaScript Error in ${errorLocation}: ${e.message} (line ${e.lineno})`;
         addToDebugConsole(errorMsg, 'error');
         console.error('Detected Error:', e);
         

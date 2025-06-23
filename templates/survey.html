@@ -8,7 +8,7 @@
     <div class="survey-container">
         <h1 class="survey-title">Research Survey</h1>
         
-        <form method="POST" action="{{ url_for('openexperiment') }}">
+        <form method="POST" action="{{ url_for('submit-survey') }}">
             <div class="question-group">
                 <label for="game_dev_experience_detailed">What is your experience of Game development? <span class="required">*</span></label>
                 <select name="game_dev_experience_detailed" id="game_dev_experience_detailed" required onchange="toggleGameDevPosition()">
@@ -172,7 +172,7 @@
             </div>
 
             <div class="question-group conditional-field" id="phaser-details-group" style="display: none;">
-                <label>Please provide further details about your Phaser.js experience:</label>
+                <label for="phaser_details">Please provide further details about your Phaser.js experience:</label>
                 <textarea name="phaser_details" id="phaser_details" placeholder="e.g., types of games built, features used...">{{ form_data.phaser_details if form_data else '' }}</textarea>
             </div>
 

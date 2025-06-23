@@ -1,5 +1,10 @@
+let secureExecutor;
+
 // Initialize the Ace editor
 document.addEventListener('DOMContentLoaded', function() {
+
+    secureExecutor = new SecureGameExecutor();
+
     const editor = ace.edit("editor");
     if (!editor) {
         console.error("Failed to initialize Ace editor.");
@@ -7,27 +12,27 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     editor.setTheme("ace/theme/monokai");
     editor.session.setMode("ace/mode/javascript");
-    
-    // Fetch current game.js content
-    fetch("/static/js/game.js")
-        .then(response => response.text())
-        .then(data => {
-            editor.setValue(data);
+
+    fetch('/get-user-game-code')
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+            editor.setValue(data.code);
             editor.clearSelection();
-        });
-        
+        }
+    });
+
     // Handle save button click
     document.getElementById('save-code').addEventListener('click', function() {
         const code = editor.getValue();
 
-            console.log('=== SAVE DEBUG ===');
-    console.log('Code length:', code.length);
-    console.log('Number of lines:', code.split('\n').length);
-    console.log('Ends with newline:', code.endsWith('\n'));
-    console.log('Ends with multiple newlines:', /\n{2,}$/.test(code));
-    console.log('Last 100 chars:', JSON.stringify(code.slice(-100)));
-    
-        
+        try {
+            secureExecutor.validateCode(code);
+        } catch (error) {
+            alert("Code validation failed: " + error.message);
+            return;
+        }
+
         fetch("/save-code", {
             method: "POST",
             headers: {
@@ -42,6 +47,10 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 alert("Error saving code: " + data.error);
             }
+        })
+         .catch(error => {
+            console.error('Save error:', error);
+            alert("Error saving code: " + error.message);
         });
     });
       // Handle reload button click
@@ -65,21 +74,27 @@ function reloadGame() {
     clearDebugConsole();
 
     // Reload and re-execute the game script
-    fetch("/static/js/game.js")
-        .then(response => response.text())
+    fetch("/get-user-game-code")
+        .then(response => response.json())
         .then(gameCode => {
-            try {
-                // Execute the new game code in a way that recreates the game
-                eval(gameCode);
-                
-                // Add success message to chat
-                if (typeof addMessage === 'function') {
-                    addMessage('Game reloaded successfully!', 'system-message');
+            if (gameCode.success){
+                try {
+                    // Execute the new game code in a way that recreates the game
+                    secureExecutor.executeSecurely(gameCode.code);
+                    
+                    // Add success message to chat
+                    if (typeof addMessage === 'function') {
+                        addMessage('Game reloaded successfully!', 'system-message');
+                    }
+                } catch (error) {
+                    console.error('Error executing game code:', error);
+                    if (typeof addMessage === 'function') {
+                        addMessage('Error reloading game: ' + error.message, 'error-message');
+                    }
                 }
-            } catch (error) {
-                console.error('Error executing game code:', error);
+            } else {
                 if (typeof addMessage === 'function') {
-                    addMessage('Error reloading game: ' + error.message, 'error-message');
+                    addMessage('Error fetching game code: ' + data.error, 'error-message');
                 }
             }
         })
@@ -89,43 +104,4 @@ function reloadGame() {
                 addMessage('Error fetching game code: ' + error.message, 'error-message');
             }
         });
-}
-
-function loadGameScript() {
-    const editor = ace.edit("editor");
-    if (!editor) {
-        console.error("Failed to initialize Ace editor.");
-        return;
-    }
-    editor.setTheme("ace/theme/monokai");
-    editor.session.setMode("ace/mode/javascript");
-    
-    // Fetch current game.js content
-    fetch("/static/js/game.js")
-        .then(response => response.text())
-        .then(data => {
-            editor.setValue(data);
-            editor.clearSelection();
-        });
-        // Handle save button click
-    document.getElementById('save-code').addEventListener('click', function() {
-        const code = editor.getValue();
-        
-        fetch("/save-code", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ code: code, file: "game.js" })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if(data.success) {
-                alert("Code saved successfully!");
-            } else {
-                alert("Error saving code: " + data.error);
-            }
-        });
-    });
-    
 }
