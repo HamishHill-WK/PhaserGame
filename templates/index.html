@@ -75,7 +75,7 @@
             </ul>
         </div>
         
-        <form method="POST" action="{{ url_for('opensurvey') }}">
+        <form method="POST" action="{{ url_for('log_consent') }}">
             <table class="consent-table">
                 <thead>
                     <tr>
@@ -146,20 +146,21 @@
                 alert('You must consent to both participation and data collection to proceed with the study.');
             } else {
                 // Log consent data
-                fetch('/log-consent', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ 
-                        consent_given: true,
-                        user_name: document.getElementById('signature').value,
-                        signed_date: document.getElementById('date').value,
-                        consent_participate: consentYes,
-                        consent_data: dataYes
-                    })
-                });
+                // fetch('/log-consent', {
+                //     method: 'POST',
+                //     headers: {
+                //         'Content-Type': 'application/json'
+                //     },
+                //     body: JSON.stringify({ 
+                //         consent_given: true,
+                //         user_name: document.getElementById('signature').value,
+                //         signed_date: document.getElementById('date').value,
+                //         consent_participate: consentYes,
+                //         consent_data: dataYes
+                //     })
+                // });
             }    
+
         });
         
         // Set today's date as default

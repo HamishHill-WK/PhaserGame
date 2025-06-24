@@ -228,19 +228,6 @@ def debrief():
     
     return render_template('debrief.html')
 
-#
-# @app.route("/get-session-info", methods=["GET"])
-# def get_session_info():
-#     """Get current session information"""
-#     session_id = session.get('session_id', 'no_session')
-#     conversation_history = assistant.get_conversation(session_id)
-    
-#     return jsonify({
-#         "session_id": session_id,
-#         "conversation_count": len(conversation_history),
-#         "has_conversation": len(conversation_history) > 0
-#     })
-
 @app.route("/clear-session", methods=["POST"])
 def clear_session():
     """Clear current session conversation"""
@@ -276,13 +263,13 @@ def get_user_game_code():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
-@app.route("/submit-survey", methods=["POST"])
+@app.route("/submit_survey", methods=["POST"])
 def submit_survey():
     try:
         # Get session ID to link survey to user journey
         session_id = session.get('session_id', 'unknown')
         user_id = session.get('user_id')  # Get anonymous user ID from consent
-        
+        print(f"Session ID: {session_id}, User ID: {user_id}")
         # Ensure user has given consent
         if not user_id:
             return jsonify({"success": False, "error": "Consent required before submitting survey"})
@@ -298,7 +285,7 @@ def submit_survey():
         programming_proffessional_level = request.form.get('programming_position')
         programming_experience_description = request.form.get('programming_details')
         programming_experience_years = request.form.get('programming_years', type=float)
-        languages = request.form.getlist('languages')  # Multiple selections
+        programming_languages = request.form.getlist('languages')  # Multiple selections
         used_phaser = request.form.get('used_phaser') == 'yes'
         phaser_experience_description = request.form.get('phaser_details', '')  # Additional details
         uses_ai_tools = request.form.get('uses_ai_tools') == 'yes'
@@ -318,7 +305,7 @@ def submit_survey():
             programming_experience_years=programming_experience_years,
             programming_experience_level=programming_experience_level,
             programming_proffessional_level=programming_proffessional_level,
-            languages=json.dumps(languages) if languages else '',  # Store as JSON string            
+            programming_languages=json.dumps(programming_languages) if programming_languages else '',  # Store as JSON string            
             used_phaser=used_phaser,
             phaser_experience_description=phaser_experience_description,
             uses_ai_tools=uses_ai_tools,
@@ -327,8 +314,8 @@ def submit_survey():
             submitted_at=datetime.now()
         )
         
-        db.session.add(survey_data)
-        db.session.commit()
+        # db.session.add(survey_data)
+        # db.session.commit()
         
         # Redirect to experiment page
         return redirect(url_for('gameAIassistant'))
@@ -350,28 +337,36 @@ def get_session_id():
 def log_consent():
     """Log consent decision with session tracking"""
     try:
+        print("Logging consent...")
         session_id = session.get('session_id', 'unknown')
-        consent_given = request.json.get('consent_given', False)
-        user_name = request.json.get('user_name', '')
-        signed_date_form = request.json.get('signed_date', datetime.now().isoformat())
+        consent_participate = request.form.get('consent_participate', False)
+        consent_data = request.form.get('consent_data', False)
+        user_name = request.form.get('user_name', '')
+        signed_date_form = request.form.get('signed_date', datetime.now().isoformat())
           # Create anonymous user record for consent tracking
         anonymous_user = User(
             signed=user_name,
+            consent_data=consent_data,
+            consent_participate=consent_participate,
             participant_code=f"P{uuid.uuid4().hex[:8].upper()}",  # Anonymous participant code
             signed_date=signed_date_form
         )
         
-        db.session.add(anonymous_user)
-        db.session.flush()  # Get the user ID without committing
+        # db.session.add(anonymous_user)
+        # db.session.flush()  # Get the user ID without committing
         
-        # Store user ID in session for linking survey and experiment data
-        session['user_id'] = anonymous_user.id
+        print(f"Anonymous user created with ID: {anonymous_user.id}, Participant Code: {anonymous_user.participant_code}")
 
-        return jsonify({
-            "success": True, 
-            "session_id": session_id,
-            "participant_code": anonymous_user.participant_code
-        })
+        # Store user ID in session for linking survey and experiment data
+        session['user_id'] = anonymous_user.participant_code
+
+        # return jsonify({
+        #     "success": True, 
+        #     "session_id": session_id,
+        #     "participant_code": anonymous_user.participant_code
+        # })
+        return redirect(url_for('survey'))
+
         
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})

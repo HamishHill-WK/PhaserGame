@@ -35,6 +35,8 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     signed = db.Column(db.String(80), unique=True, nullable=False)
     signed_date = db.Column(db.DateTime, default=datetime.utcnow)
+    consent_data = db.Column(db.Boolean, nullable=False)  
+    consent_participate = db.Column(db.Boolean, default=False)  # User consent to participate in the study
     participant_code = db.Column(db.String(80), unique=True, nullable=False) #shown to the user so they can request their data is removed
 
     data_deletion_requested = db.Column(db.Boolean, default=False)
