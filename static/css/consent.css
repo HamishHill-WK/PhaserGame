@@ -14,8 +14,10 @@
     margin-bottom: 25px;
 }
 .consent-section h3 {
-    color: #2c3e50;
-    margin-bottom: 10px;
+    color: #000 !important;
+    border-bottom: 2px solid #003366;
+    padding-bottom: 5px;
+    margin-bottom: 15px;
 }
 .consent-checkbox {
     margin: 20px 0;
@@ -47,4 +49,116 @@
     color: #e74c3c;
     font-weight: bold;
     margin-bottom: 20px;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    line-height: 1.6;
+    color: #000;
+}
+.header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+.header h2 {
+    color: #000 !important;
+}
+.university-logo {
+    font-weight: bold;
+    font-size: 24px;
+    color: #003366;
+    margin-bottom: 10px;
+}
+.consent-container {
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+.project-info {
+    background: #f5f5f5;
+    padding: 15px;
+    border-left: 4px solid #003366;
+    margin-bottom: 25px;
+}
+.project-info strong {
+    color: #000 !important;
+}
+.consent-section {
+    margin-bottom: 25px;
+}
+.consent-section h3 {
+    color: #000 !important;
+    border-bottom: 2px solid #003366;
+    padding-bottom: 5px;
+    margin-bottom: 15px;
+}
+.consent-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+}
+.consent-table th, .consent-table td {
+    border: 1px solid #ddd;
+    padding: 12px;
+    text-align: left;
+}
+.consent-table th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+    color: #000 !important;
+}
+.consent-table .checkbox-cell {
+    text-align: center;
+    width: 100px;
+}
+.signature-section {
+    margin-top: 30px;
+    padding: 20px;
+    background: #f9f9f9;
+    border-radius: 5px;
+}
+.signature-section input {
+    margin: 10px 0;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    width: 200px;
+}
+.consent-buttons {
+    text-align: center;
+    margin-top: 30px;
+}
+.agree-btn {
+    background: #003366;
+    color: white;
+    padding: 12px 30px;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+}
+.agree-btn:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+.error {
+    background: #ffebee;
+    color: #c62828;
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+ul {
+    margin-left: 20px;
+}
+.important-text {
+    font-weight: bold;
+    color: #d32f2f;
+}
+.consent-container, .consent-text, .consent-section, .project-info, .signature-section, .consent-table th, .consent-table td, .header, .university-logo, .important-text, .error {
+    color: #000 !important;
 }
