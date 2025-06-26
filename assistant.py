@@ -21,7 +21,7 @@ def get_response(user_message="", session_id="default", user_id=None):
     
     response = client.responses.create(
         model="gpt-4.1-mini",
-        input=f'{user_message}'# {code}',
+        input=f'{user_message} {code}'
     )
     
     # Store conversation in session-specific list
