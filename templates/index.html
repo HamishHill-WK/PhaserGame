@@ -1,123 +1,166 @@
-<!-- templates/consent.html -->
+<!-- templates/index.html -->
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Research Study Consent</title>
+    <title>Participant Information Sheet and Research Consent Form</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/consent.css') }}">
-    <style>
-
-    </style>
 </head>
 <body>
+    <div class="header">
+        <div class="university-logo">
+            <img src="{{ url_for('static', filename='assets/abertaylogo.png') }}" alt="Abertay University Logo" style="height: 60px; vertical-align: middle;">
+        </div>
+        <h2>Participant Information Sheet and Research Consent Form</h2>
+    </div>
+
     <div class="consent-container">
-        <h1>Research Study: Game Modification Through Natural Language</h1>
-        
-        {% if error %}
-        <div class="error">{{ error }}</div>
-        {% endif %}
-        
-        <div class="consent-text">
-            <div class="consent-section">
-                <h3>Study Purpose</h3>
-                <p>You are being invited to participate in a research study investigating how Large Language Models (LLMs) can help users modify games through natural language descriptions. This study aims to explore how AI assistance can lower barriers to game development.</p>
-            </div>
-            
-            <div class="consent-section">
-                <h3>What You Will Do</h3>
-                <p>You will:</p>
-                <ul>
-                    <li>Complete a brief pre-screening survey (5 minutes)</li>
-                    <li>Interact with a game development tool that uses AI assistance</li>
-                    <li>Modify a simple Breakout game using natural language commands</li>
-                    <li>Complete tasks designed to test the tool's effectiveness</li>
-                </ul>
-                <p>Total time commitment: approximately 30-45 minutes.</p>
-            </div>
-            
-            <div class="consent-section">
-                <h3>Data Collection</h3>
-                <p>We will collect:</p>
-                <ul>
-                    <li>Demographic information (age group, programming experience, etc.)</li>
-                    <li>Your interactions with the AI chat interface</li>
-                    <li>Code modifications you make to the game</li>
-                    <li>Task completion data and timestamps</li>
-                </ul>
-                <p><strong>No personally identifiable information will be collected.</strong> All data is anonymized and assigned a random session ID.</p>
-            </div>
-            
-            <div class="consent-section">
-                <h3>Risks and Benefits</h3>
-                <p>There are minimal risks associated with this study. The primary risk is the time commitment required to participate. There are no direct benefits to you, but your participation will help advance research in AI-assisted game development tools.</p>
-            </div>
-            
-            <div class="consent-section">
-                <h3>Privacy and Confidentiality</h3>
-                <p>Your data will be stored securely and used only for research purposes. Data may be published in academic papers or presentations, but will be aggregated and anonymized. You may withdraw from the study at any time by closing your browser.</p>
-            </div>
-            
-            <div class="consent-section">
-                <h3>Contact Information</h3>
-                <p>If you have questions about this study, please contact:<br>
-                Researcher: [Your Name]<br>
-                Email: [Your Email]<br>
-                Institution: [Your Institution]</p>
-            </div>
+        <div class="project-info">
+            <strong>Project title:</strong> Game Mechanic Implementation With Natural Language Assistance<br>
+            <strong>Researcher name:</strong> Hamish Hill<br>
+            <strong>Institution:</strong> Faculty of Design, Informatics and Business, Abertay University
         </div>
         
-        <form method="POST" action="{{ url_for('opensurvey') }}">
-            <div class="consent-checkbox">
-                <label>
-                    <input type="checkbox" id="consent-check" onchange="toggleSubmit()"> 
-                    I have read and understood the information above. I consent to participate in this research study and understand that I can withdraw at any time.
-                </label>
-            </div>
+        <div class="consent-section">
+            <h3>What is the research about?</h3>
+            <p>We invite you to participate in a research project investigating how domain expertise in game development enables users to effectively use Large Language Models (LLMs) as a code assistant when implementing game mechanics. This research explores how AI assistance interacts with domain expertise in game development in a mechanic implementation workflow.</p>
+            <p>This research is being conducted as part of academic research at Abertay University.</p>
+        </div>
+        
+        <div class="consent-section">
+            <h3>Do I have to take part?</h3>
+            <p>This form has been written to help you decide if you would like to take part. It is up to you and you alone whether you wish to take part. If you do decide to take part you will be free to withdraw at any time without providing a reason and without penalty.</p>
+            <p>Participation is entirely voluntary, and you can close your browser at any time to withdraw from the study.</p>
+        </div>
+        
+        <div class="consent-section">
+            <h3>What will I be required to do?</h3>
+            <p>You will be asked to:</p>
+            <ul>
+                <li>Complete a brief demographic survey about your programming and game development experience (approximately 5 minutes)</li>
+                <li>Interact with a web-based game development environment that includes AI assistance</li>
+                <li>Implement a series of game mechanics with the assistance of an LLM</li>
+                <li>Some participants will be selected to be part of the control group who will not have access to the AI assitant</li>
+            </ul>
+            <p><strong>Total time commitment:</strong> Approximately 60-75 minutes.</p>
+        </div>
+        
+        <div class="consent-section">
+            <h3>How will you handle my data?</h3>
+            <p>Your data will be stored in an <strong>anonymised</strong> form and will only be accessible to the research team. This means that nobody including the researchers could reasonably identify you within the data. Your data will be stored securely with data fully anonymised at the point of collection. Your responses are treated in the strictest confidence - it will be impossible to identify individuals within a dataset when any of the research is disseminated (e.g., in publications/presentations). Abertay University acts as Data Controller (DataProtectionOfficer@abertay.ac.uk).</p>
+            
+            <p>We will collect:</p>
+            <ul>
+                <li>Demographic information (age group, programming experience level, game development experience)</li>
+                <li>Your natural language interactions with the AI chat interface</li>
+                <li>Code modifications made to the game</li>
+                <li>Task completion data, timestamps, and success rates</li>
+                <li>System logs of your interactions with the development tool</li>
+            </ul>
+            <p class="important-text">No personally identifiable information will be collected beyond what you voluntarily provide.</p>
+        </div>
+        
+        <div class="consent-section">
+            <h3>Retention of research data</h3>
+            <p>Researchers are obliged to retain research data for up to 10 years' post-publication, however your anonymised research data may be retained indefinitely (e.g., so that researchers engage in open practice and other researchers can access their data to confirm the conclusions of published work). Consistent with our data retention policy, researchers retain consent forms for as long as we continue to hold information about a data subject and for 10 years for published research.</p>
+        </div>
+        
+        <div class="consent-section">
+            <h3>Consent statement:</h3>
+            <p>Abertay University attaches high priority to the ethical conduct of research. Please consider the following before indicating your consent on this form. Indicating your consent confirms that you are willing to participate in the research, however, indicating consent does not commit you to anything you do not wish to do and you are free to withdraw your participation at any time. You are indicating consent under the following assumptions:</p>
+            <ul>
+                <li>I understand the contents of the participant information sheet and consent form.</li>
+                <li>I have been given the opportunity to ask questions about the research and have had them answered satisfactorily.</li>
+                <li>I understand that my participation is entirely voluntary and that I can withdraw from the research (parts of the project or the entire project) at any time without penalty and without having to provide an explanation.</li>
+                <li>I understand who has access to my data and how it will be handled at all stages of the research project.</li>
+            </ul>
+        </div>
+        
+        <form method="POST" action="{{ url_for('log_consent') }}">
+            <table class="consent-table">
+                <thead>
+                    <tr>
+                        <th style="width: 60%;">PLEASE INITIAL BOX:</th>
+                        <th class="checkbox-cell">Yes, I do consent</th>
+                        <th class="checkbox-cell">No, I do not consent</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>I consent to take part in this study conducted by Hamish Hill who intends to use my data for research examining how LLMs can assist users in game modification through natural language processing</td>
+                        <td class="checkbox-cell">
+                            <input type="radio" name="consent_participate" value="yes" id="consent-yes" required onchange="toggleSubmit()">
+                        </td>
+                        <td class="checkbox-cell">
+                            <input type="radio" name="consent_participate" value="no" id="consent-no" required onchange="toggleSubmit()">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>I consent for the researcher to collect and process my anonymised interaction data, task completion data, and demographic information for this research study</td>
+                        <td class="checkbox-cell">
+                            <input type="radio" name="consent_data" value="yes" id="data-yes" required onchange="toggleSubmit()">
+                        </td>
+                        <td class="checkbox-cell">
+                            <input type="radio" name="consent_data" value="no" id="data-no" required onchange="toggleSubmit()">
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
             
             <div class="signature-section">
-                <label for="signature">Signature (type your name):</label>
-                <input type="text" id="signature" name="signature" required>
-            </div>
-            
-            <div class="date-section">
-                <label for="date">Date:</label>
+                <p><strong>I confirm that I am willing to take part in this research:</strong></p>
+                <label for="signature"><strong>Signature:</strong></label><br>
+                <input type="text" id="signature" name="signature" required placeholder="Type your full name"><br><br>
+                
+                <label for="date"><strong>DATE:</strong></label><br>
                 <input type="date" id="date" name="date" required>
             </div>
 
             <div class="consent-buttons">
                 <button type="submit" name="consent" value="agree" id="agree-btn" class="agree-btn" disabled>
-                    I Agree to Participate
+                    Proceed to Study
                 </button>
             </div>
         </form>
+        
+        <div style="margin-top: 30px; font-size: 12px; color: #666;">
+            <p>You can find our procedure for complaints (regarding research projects) and our privacy notice and legal basis for processing research data at: <a href="https://www.abertay.ac.uk/legal/privacy-notice-for-research-participants/">https://www.abertay.ac.uk/legal/privacy-notice-for-research-participants/</a></p>
+        </div>
     </div>
+    
     <script>
         function toggleSubmit() {
-            const checkbox = document.getElementById('consent-check');
+            const consentYes = document.getElementById('consent-yes').checked;
+            const dataYes = document.getElementById('data-yes').checked;
             const button = document.getElementById('agree-btn');
-            button.disabled = !checkbox.checked;
-
+            
+            // Enable button only if both consent questions are answered with "yes"
+            button.disabled = !(consentYes && dataYes);
         }
 
         document.getElementById('agree-btn').addEventListener('click', function(event) {
-            const checkbox = document.getElementById('consent-check');
-            if (!checkbox.checked) {
+            const consentYes = document.getElementById('consent-yes').checked;
+            const dataYes = document.getElementById('data-yes').checked;
+            
+            if (!consentYes || !dataYes) {
                 event.preventDefault();
-                alert('You must agree to the consent terms before proceeding.');
-            }
-            else {
-                // Optionally, you can add any additional logic here before form submission
-                fetch('/log-consent', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ 
-                        consent_given: checkbox.checked,
-                        user_name : document.getElementById('signature').value,
-                        signed_date: document.getElementById('date').value
-                    })
-                });
+                alert('You must consent to both participation and data collection to proceed with the study.');
+            } else {
+                // Log consent data
+                // fetch('/log-consent', {
+                //     method: 'POST',
+                //     headers: {
+                //         'Content-Type': 'application/json'
+                //     },
+                //     body: JSON.stringify({ 
+                //         consent_given: true,
+                //         user_name: document.getElementById('signature').value,
+                //         signed_date: document.getElementById('date').value,
+                //         consent_participate: consentYes,
+                //         consent_data: dataYes
+                //     })
+                // });
             }    
+
         });
         
         // Set today's date as default
