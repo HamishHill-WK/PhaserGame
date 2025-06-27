@@ -3,7 +3,7 @@
 Database Setup Script for Phaser Research Application
 Run this script to initialize your PostgreSQL database on AWS RDS
 """
-from app import app, db
+from application import application, db
 from data import User, Survey, ExperimentData, CodeChange
 import os
 import sys
@@ -19,7 +19,7 @@ def setup_database():
     """Initialize the database with all required tables"""
     try:
         # Import after adding to path
-        with app.app_context():
+        with application.app_context():
             # Create all tables
             db.create_all()
             
@@ -35,7 +35,7 @@ def setup_database():
 def test_connection():
     """Test database connection"""
     try:        
-        with app.app_context():
+        with application.app_context():
             # Test connection
             db.engine.execute('SELECT 1')
             return True

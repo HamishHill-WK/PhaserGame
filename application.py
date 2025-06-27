@@ -10,17 +10,13 @@ from data import Survey, ExperimentData, User, configure_database
 
 validator = secval.SimpleSecurityValidator()
 
-app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key")
-db = configure_database(app)
+application = Flask(__name__)
+application.secret_key = os.environ.get("SECRET_KEY", "your_secret_key")
+db = configure_database(application)
 
 errors = []
 
-# @app.route("/openexperiment", methods=["GET", "POST"])
-# def openexperiment():
-#     return redirect(url_for('gameAIassistant'))
-
-@app.route("/gameAIassistant", methods=["GET", "POST"])
+@application.route("/gameAIassistant", methods=["GET", "POST"])
 def gameAIassistant():
     # Use existing session ID from survey flow or create new one
     session_id = session.get('session_id')
@@ -29,8 +25,8 @@ def gameAIassistant():
     
     return render_template('game-AI-assistant.html')
 
-@app.route("/")
-@app.route("/index")
+@application.route("/")
+@application.route("/index")
 def index():
     # Generate session ID for user tracking across all pages
     if 'session_id' not in session:
@@ -39,7 +35,7 @@ def index():
     return render_template('index.html')
 
 # Add the survey route
-@app.route("/opensurvey", methods=["GET", "POST"])
+@application.route("/opensurvey", methods=["GET", "POST"])
 def opensurvey():
     # Ensure session ID exists from consent page
     if 'session_id' not in session:
@@ -49,7 +45,7 @@ def opensurvey():
     if consent == 'agree':
         return redirect(url_for('survey'))
     
-@app.route("/survey")
+@application.route("/survey")
 def survey():
     # Ensure session ID consistency
     session_id = session.get('session_id')
@@ -59,7 +55,7 @@ def survey():
     
     return render_template('survey.html', session_id=session_id)
 
-@app.route("/save-code", methods=["POST"])
+@application.route("/save-code", methods=["POST"])
 def save_code():
     try:
         data = request.get_json()
@@ -87,7 +83,7 @@ def save_code():
             return jsonify({"success": False, "error": "Invalid file name"})
 
         # Save to user-specific file
-        user_file_path = os.path.join(app.static_folder, "js", "users", f"game_{session_id}.js")
+        user_file_path = os.path.join(application.static_folder, "js", "users", f"game_{session_id}.js")
         os.makedirs(os.path.dirname(user_file_path), exist_ok=True)
         
         with open(user_file_path, "w", encoding="utf-8", newline='') as f:
@@ -113,7 +109,7 @@ def save_code():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
-@app.route("/log-error", methods=["POST"])
+@application.route("/log-error", methods=["POST"])
 def log_error():
     try:
         data = request.get_json()
@@ -149,15 +145,17 @@ def log_error():
                     "error_type": "javascript_runtime_error"
                 })
             )
-            db.session.add(experiment_data)
-            db.session.commit()
+            
+            if(db.session.is_active):
+                db.session.add(experiment_data)
+                db.session.commit()
             
         return jsonify({"success": True, "error_id": error_id})
         
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
-@app.route("/LLMrequest", methods=["POST"])
+@application.route("/LLMrequest", methods=["POST"])
 def LLMrequest():
     try:
         data = request.get_json()
@@ -205,7 +203,7 @@ def LLMrequest():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
-@app.route("/debrief", methods=["GET", "POST"])
+@application.route("/debrief", methods=["GET", "POST"])
 def debrief():
     # Track experiment completion
     session_id = session.get('session_id', 'unknown')
@@ -228,7 +226,7 @@ def debrief():
     
     return render_template('debrief.html')
 
-@app.route("/clear-session", methods=["POST"])
+@application.route("/clear-session", methods=["POST"])
 def clear_session():
     """Clear current session conversation"""
     session_id = session.get('session_id')
@@ -237,16 +235,16 @@ def clear_session():
         return jsonify({"success": True, "message": "Session cleared"})
     return jsonify({"success": False, "error": "No active session"})
 
-@app.route("/get-user-game-code", methods=["GET"])
+@application.route("/get-user-game-code", methods=["GET"])
 def get_user_game_code():
     """Get user-specific game code"""
     try:
         session_id = session.get('session_id', 'unknown')
-        user_file_path = os.path.join(app.static_folder, "js", "users", f"game_{session_id}.js")
+        user_file_path = os.path.join(application.static_folder, "js", "users", f"game_{session_id}.js")
         
         # If user file doesn't exist, copy from template
         if not os.path.exists(user_file_path):
-            template_path = os.path.join(app.static_folder, "js", "game.js")
+            template_path = os.path.join(application.static_folder, "js", "game.js")
             os.makedirs(os.path.dirname(user_file_path), exist_ok=True)
             
             with open(template_path, "r", encoding="utf-8") as template_file:
@@ -263,7 +261,7 @@ def get_user_game_code():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
-@app.route("/submit_survey", methods=["POST"])
+@application.route("/submit_survey", methods=["POST"])
 def submit_survey():
     try:
         # Get session ID to link survey to user journey
@@ -314,8 +312,8 @@ def submit_survey():
             submitted_at=datetime.now()
         )
         
-        # db.session.add(survey_data)
-        # db.session.commit()
+        db.session.add(survey_data)
+        db.session.commit()
         
         # Redirect to experiment page
         return redirect(url_for('gameAIassistant'))
@@ -323,7 +321,7 @@ def submit_survey():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
-@app.route("/get-session-id", methods=["GET"])
+@application.route("/get-session-id", methods=["GET"])
 def get_session_id():
     """Get current session ID for client-side tracking"""
     session_id = session.get('session_id')
@@ -333,7 +331,7 @@ def get_session_id():
     
     return jsonify({"session_id": session_id})
 
-@app.route("/log-consent", methods=["POST"])
+@application.route("/log-consent", methods=["POST"])
 def log_consent():
     """Log consent decision with session tracking"""
     try:
@@ -352,8 +350,8 @@ def log_consent():
             signed_date=signed_date_form
         )
         
-        # db.session.add(anonymous_user)
-        # db.session.flush()  # Get the user ID without committing
+        db.session.add(anonymous_user)
+        db.session.flush()  # Get the user ID without committing
         
         print(f"Anonymous user created with ID: {anonymous_user.id}, Participant Code: {anonymous_user.participant_code}")
 
@@ -374,14 +372,14 @@ def log_consent():
 # Database initialization function
 def init_db():
     """Initialize database tables"""
-    with app.app_context():
+    with application.app_context():
         db.create_all()
         print("Database tables created successfully!")
 
 # Uncomment to initialize database on first run
-# init_db()
+init_db()
 
 if __name__ == "__main__":
-    if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
-        webbrowser.open('http://127.0.0.1:5001')
-    app.run(host='0.0.0.0', debug=True, port=5001)
+    #if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+    #    webbrowser.open('http://127.0.0.1:5001')
+    application.run(host='0.0.0.0', debug=False, port=5001)

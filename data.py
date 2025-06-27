@@ -5,8 +5,8 @@ import os
 # Create database instance
 db = SQLAlchemy()
 
-def configure_database(app):
-    """Configure database settings and initialize with Flask app"""
+def configure_database(application):
+    """Configure database settings and initialize with Flask application"""
     
     # Database configuration - PostgreSQL for AWS RDS
     DATABASE_URL = os.environ.get('DATABASE_URL') 
@@ -15,9 +15,9 @@ def configure_database(app):
     if not DATABASE_URL:
         DATABASE_URL = 'postgresql://postgres:password@localhost:5432/phaser_research_test'
 
-        app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
-        app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-        app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        application.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+        application.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+        application.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
             'pool_size': 10,
             'pool_recycle': 120,
             'pool_pre_ping': True,
@@ -26,8 +26,8 @@ def configure_database(app):
             }
         }
         
-    # Initialize database with app
-    db.init_app(app)
+    # Initialize database with application
+    db.init_app(application)
     
     return db
 
