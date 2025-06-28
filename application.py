@@ -7,12 +7,21 @@ import assistant
 import secval
 import uuid
 from data import Survey, ExperimentData, User, configure_database
+from dotenv import load_dotenv 
+
+load_dotenv()
+
+print(f"DATABASE_URL: {os.environ.get('DATABASE_URL', 'NOT SET')}")
+print(f"SECRET_KEY: {os.environ.get('SECRET_KEY', 'NOT SET')}")
+print(f"Current working directory: {os.getcwd()}")
+print(f".env file exists: {os.path.exists('.env')}")
+print("=" * 50)
 
 validator = secval.SimpleSecurityValidator()
 
 application = Flask(__name__)
 application.secret_key = os.environ.get("SECRET_KEY", "your_secret_key")
-db = configure_database(application)
+#db = configure_database(application)
 
 errors = []
 
@@ -102,8 +111,8 @@ def save_code():
                     "lines_count": len(code_lines)
                 })
             )
-            db.session.add(experiment_data)
-            db.session.commit()
+            #db.session.add(experiment_data)
+            #db.session.commit()
         
         return jsonify({"success": True})
     except Exception as e:
@@ -146,9 +155,9 @@ def log_error():
                 })
             )
             
-            if(db.session.is_active):
-                db.session.add(experiment_data)
-                db.session.commit()
+            #if(db.session.is_active):
+                #db.session.add(experiment_data)
+                #db.session.commit()
             
         return jsonify({"success": True, "error_id": error_id})
         
@@ -221,8 +230,8 @@ def debrief():
                 "completion_timestamp": datetime.now().isoformat()
             })
         )
-        db.session.add(experiment_data)
-        db.session.commit()
+        #db.session.add(experiment_data)
+        #db.session.commit()
     
     return render_template('debrief.html')
 
@@ -312,8 +321,8 @@ def submit_survey():
             submitted_at=datetime.now()
         )
         
-        db.session.add(survey_data)
-        db.session.commit()
+        #db.session.add(survey_data)
+        #db.session.commit()
         
         # Redirect to experiment page
         return redirect(url_for('gameAIassistant'))
@@ -350,8 +359,8 @@ def log_consent():
             signed_date=signed_date_form
         )
         
-        db.session.add(anonymous_user)
-        db.session.flush()  # Get the user ID without committing
+        #db.session.add(anonymous_user)
+        #db.session.flush()  # Get the user ID without committing
         
         print(f"Anonymous user created with ID: {anonymous_user.id}, Participant Code: {anonymous_user.participant_code}")
 
@@ -373,11 +382,11 @@ def log_consent():
 def init_db():
     """Initialize database tables"""
     with application.app_context():
-        db.create_all()
+        #db.create_all()
         print("Database tables created successfully!")
 
 # Uncomment to initialize database on first run
-init_db()
+#init_db()
 
 if __name__ == "__main__":
     #if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
