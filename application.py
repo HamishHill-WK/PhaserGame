@@ -168,6 +168,8 @@ def log_error():
 def LLMrequest():
     try:
         data = request.get_json()
+        context = data.get("context", [])
+        print(f"Application.py: Context received: {context}")
         user_message = data.get("input", "")
         
         # Get or create session ID
@@ -178,7 +180,7 @@ def LLMrequest():
         # Get user_id from session for tracking
         user_id = session.get('user_id')
         
-        response = assistant.get_response(user_message, session_id, user_id)
+        response = assistant.get_response(context, user_message, session_id, user_id)
         
         response_segments = {}
         
@@ -189,9 +191,18 @@ def LLMrequest():
             parts = response.output_text.split("```")
             
             for i, p in enumerate(parts):
+                print(f"\n\nApplication.py: Part {i}: {p}\n\n")
                 if "javascript" in p:
                     # If the part contains 'javascript', it's likely a code block
                     response_segments[i] = ["code", p.split("javascript")[1].strip()]
+                elif "json" in p:
+                    # If the part contains 'json', it's likely a code block
+                    response_segments[i] = ["code", p.split("json")[1].strip()]
+                    code_blocks.append(p.strip())
+                elif "js" in p:
+                    # If the part contains 'js', it's likely a code block
+                    response_segments[i] = ["code", p.split("js")[1].strip()]
+                    code_blocks.append(p.strip())
                 else:
                     # Otherwise, it's just a regular text segment
                     response_segments[i] = ["text", p.strip()]

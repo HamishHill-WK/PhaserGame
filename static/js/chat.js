@@ -5,7 +5,14 @@ const outputDiv = document.getElementById('console-output');
 function addMessage(message, className) {
     const messageDiv = document.createElement('div');
     messageDiv.className = className;
-    messageDiv.textContent = message;
+
+    if (className === 'llm-response' || className === 'llm-code') {
+        messageDiv.innerHTML = marked.parse(message);
+    }
+    else{
+        messageDiv.textContent = message;
+    }
+
     outputDiv.appendChild(messageDiv);
     scrollToBottom();
     saveChatToStorage();
@@ -21,6 +28,8 @@ inputForm.addEventListener('submit', function(e) {
     e.preventDefault();
     
     const input = userInput.value.trim();
+    const context = getAllMessages();
+    console.log('chat.js: Context:', context);
     if (!input) return;
     
     // Add simulation input to display
@@ -34,7 +43,9 @@ inputForm.addEventListener('submit', function(e) {
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ input: input })
+        body: JSON.stringify({ 
+            context : context,
+            input: input })
     })
     .then(response => response.json())
     .then(data => {
@@ -42,8 +53,9 @@ inputForm.addEventListener('submit', function(e) {
             addMessage('Error: ' + data.error, 'error-message');
         } else {
             // Add LLM response to display
-            console.log('LLM Response:', typeof(data), data);
+            console.log('chat.js: LLM Response:', typeof(data), data);
             data.forEach(element => {
+                console.log('Element:', element);
                 if (element[0] === 'text') {
                     addMessage(element[1], 'llm-response');
                 }
@@ -102,13 +114,12 @@ document.addEventListener('DOMContentLoaded', function() {
     autoResize();
 });
 
-
 // Chat persistence functionality
 const CHAT_STORAGE_KEY = 'phaserGameChatHistory';
 //chat is stored in the browser so it is unique to each user
 function saveChatToStorage() {
     const messages = [];
-    const messageElements = outputDiv.querySelectorAll('div[class*="message"], div[class*="player-input"], div[class*="llm-response"], div[class*="llm-code"], div[class*="system-message"], div[class*="error-message"]');
+    const messageElements = getAllMessages();
     
     messageElements.forEach(element => {
         messages.push({
@@ -118,6 +129,10 @@ function saveChatToStorage() {
     });
     
     localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages));
+}
+
+function getAllMessages(){
+    return outputDiv.querySelectorAll('div[class*="message"], div[class*="player-input"], div[class*="llm-response"], div[class*="llm-code"], div[class*="system-message"], div[class*="error-message"]');
 }
 
 function loadChatFromStorage() {

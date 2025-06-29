@@ -10,18 +10,18 @@ client = OpenAI()
 # Dictionary to store conversations by session_id
 conversations = {}
 
-def get_response(user_message="", session_id="default", user_id=None):
+def get_response(context="", user_message="", session_id="default", user_id=None):
     # Initialize conversation for new sessions
     if session_id not in conversations:
         conversations[session_id] = []
     
-    print(f"{user_id}, {session_id}, {user_message}")
+    print(f"Assistant.py: {user_id}, {session_id}, {user_message}")
     
     code = get_gamescript(session_id)
     
     response = client.responses.create(
         model="gpt-4.1-mini",
-        input=f'{user_message} {code}'
+        input=f'{context} {user_message} {code}'
     )
     
     # Store conversation in session-specific list
@@ -35,10 +35,7 @@ def get_response(user_message="", session_id="default", user_id=None):
 # CHECK RATE LIMITS FROM RESPONSE
     headers = getattr(response, 'headers', {})
     requests_left = headers.get('x-ratelimit-remaining-requests', 'Unknown')
-    tokens_left = headers.get('x-ratelimit-remaining-tokens', 'Unknown')
-    
-    print(f"📊 Rate Limits - Requests left: {requests_left}, Tokens left: {tokens_left}")
-    
+    tokens_left = headers.get('x-ratelimit-remaining-tokens', 'Unknown')    
     
     print(f"💬 Response: {response}")
     # WARN IF LOW
