@@ -399,6 +399,342 @@ def init_db():
 # Uncomment to initialize database on first run
 #init_db()
 
+# Add these routes to your application.py
+
+@application.route("/init-db")
+def init_database():
+    """Initialize database tables - REMOVE THIS ROUTE AFTER USE"""
+    try:
+        print("Creating database tables...")
+        db.create_all()
+        print("✅ Database tables created successfully!")
+        return """
+        <html>
+        <head><title>Database Initialized</title></head>
+        <body>
+            <h1>✅ Database Initialized Successfully</h1>
+            <p>All database tables have been created.</p>
+            <a href="/">Go to main site</a>
+        </body>
+        </html>
+        """
+    except Exception as e:
+        print(f"❌ Error creating database tables: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return f"""
+        <html>
+        <head><title>Database Error</title></head>
+        <body>
+            <h1>❌ Database Initialization Failed</h1>
+            <p>Error: {str(e)}</p>
+        </body>
+        </html>
+        """, 500
+
+@application.route("/test-db")
+def test_database():
+    """Test database connection"""
+    try:
+        # Test basic connection
+        result = db.session.execute('SELECT 1')
+        
+        # Test if tables exist
+        from sqlalchemy import inspect
+        inspector = inspect(db.engine)
+        tables = inspector.get_table_names()
+        
+        return jsonify({
+            "success": True,
+            "message": "Database connection successful",
+            "tables": tables,
+            "table_count": len(tables)
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+# Add these debug routes to your application.py
+
+@application.route("/debug-env")
+def debug_environment():
+    """Debug environment variables - REMOVE AFTER DEBUGGING"""
+    try:
+        db_vars = {}
+        env_vars_to_check = [
+            'RDS_HOSTNAME', 'RDS_PORT', 'RDS_DB_NAME', 
+            'RDS_USERNAME', 'RDS_PASSWORD', 'DATABASE_URL',
+            'EXPERIMENT_DATA_LINK', 'SQLALCHEMY_DATABASE_URI'
+        ]
+        
+        for var in env_vars_to_check:
+            value = os.environ.get(var)
+            if value:
+                if 'PASSWORD' in var or 'URI' in var:
+                    # Mask sensitive data but show if it exists
+                    db_vars[var] = f"SET (length: {len(value)})"
+                else:
+                    db_vars[var] = value
+            else:
+                db_vars[var] = "NOT SET"
+        
+        # Check application config
+        app_config = {}
+        if hasattr(application, 'config'):
+            uri = application.config.get('SQLALCHEMY_DATABASE_URI')
+            if uri:
+                app_config['SQLALCHEMY_DATABASE_URI'] = f"SET (length: {len(uri)})"
+            else:
+                app_config['SQLALCHEMY_DATABASE_URI'] = "NOT SET"
+        
+        return f"""
+        <html>
+        <head><title>Environment Debug</title></head>
+        <body>
+            <h1>Environment Variables</h1>
+            <h2>Database Environment Variables:</h2>
+            <ul>
+                {''.join([f'<li><strong>{k}:</strong> {v}</li>' for k, v in db_vars.items()])}
+            </ul>
+            
+            <h2>Application Config:</h2>
+            <ul>
+                {''.join([f'<li><strong>{k}:</strong> {v}</li>' for k, v in app_config.items()])}
+            </ul>
+            
+            <br>
+            <a href="/test-basic-connection">Test Basic Connection</a>
+        </body>
+        </html>
+        """
+    except Exception as e:
+        return f"Error: {str(e)}", 500
+
+@application.route("/test-basic-connection")
+def test_basic_connection():
+    """Test the most basic database connection"""
+    try:
+        import psycopg2
+        from urllib.parse import urlparse
+        
+        # Get the database URI
+        uri = application.config.get('SQLALCHEMY_DATABASE_URI')
+        if not uri:
+            return "❌ No database URI configured", 500
+        
+        # Parse the URI
+        parsed = urlparse(uri)
+        
+        connection_info = {
+            'host': parsed.hostname,
+            'port': parsed.port or 5432,
+            'database': parsed.path[1:] if parsed.path else 'postgres',
+            'user': parsed.username,
+            'password_set': bool(parsed.password)
+        }
+        
+        # Try to connect with psycopg2 directly
+        conn = psycopg2.connect(
+            host=connection_info['host'],
+            port=connection_info['port'],
+            database=connection_info['database'],
+            user=connection_info['user'],
+            password=parsed.password,
+            connect_timeout=10,
+            sslmode='require'
+        )
+        
+        # Test the connection
+        cursor = conn.cursor()
+        cursor.execute('SELECT version()')
+        version = cursor.fetchone()[0]
+        cursor.close()
+        conn.close()
+        
+        return f"""
+        <html>
+        <head><title>Connection Test</title></head>
+        <body>
+            <h1>✅ Database Connection Successful!</h1>
+            <h2>Connection Details:</h2>
+            <ul>
+                <li><strong>Host:</strong> {connection_info['host']}</li>
+                <li><strong>Port:</strong> {connection_info['port']}</li>
+                <li><strong>Database:</strong> {connection_info['database']}</li>
+                <li><strong>User:</strong> {connection_info['user']}</li>
+                <li><strong>Password Set:</strong> {connection_info['password_set']}</li>
+            </ul>
+            <h2>Database Version:</h2>
+            <p>{version}</p>
+            
+            <br>
+            <a href="/init-db-safe">Try Safe Database Init</a>
+        </body>
+        </html>
+        """
+        
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        
+        return f"""
+        <html>
+        <head><title>Connection Failed</title></head>
+        <body>
+            <h1>❌ Database Connection Failed</h1>
+            <h2>Error:</h2>
+            <p>{str(e)}</p>
+            <h2>Full Error Details:</h2>
+            <pre>{error_details}</pre>
+            
+            <h2>Troubleshooting:</h2>
+            <ul>
+                <li>Check if database is configured in EB Console</li>
+                <li>Verify security groups allow connections</li>
+                <li>Ensure database is in same VPC as EB environment</li>
+            </ul>
+        </body>
+        </html>
+        """, 500
+
+@application.route("/init-db-safe")
+def init_database_safe():
+    """Initialize database with better error handling"""
+    try:
+        # Test connection first
+        db.session.execute('SELECT 1')
+        print("✅ Database connection test passed")
+        
+        # Create tables
+        db.create_all()
+        print("✅ Database tables created")
+        
+        # Verify tables were created
+        from sqlalchemy import inspect
+        inspector = inspect(db.engine)
+        tables = inspector.get_table_names()
+        
+        return f"""
+        <html>
+        <head><title>Database Initialized</title></head>
+        <body>
+            <h1>✅ Database Initialized Successfully!</h1>
+            <h2>Created Tables:</h2>
+            <ul>
+                {''.join([f'<li>{table}</li>' for table in tables])}
+            </ul>
+            <p>Total tables: {len(tables)}</p>
+            
+            <br>
+            <a href="/">Go to main site</a>
+        </body>
+        </html>
+        """
+        
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        
+        return f"""
+        <html>
+        <head><title>Database Init Failed</title></head>
+        <body>
+            <h1>❌ Database Initialization Failed</h1>
+            <h2>Error:</h2>
+            <p>{str(e)}</p>
+            <h2>Full Error Details:</h2>
+            <pre>{error_details}</pre>
+        </body>
+        </html>
+        """, 500
+
+# Add this to your application.py for network debugging
+
+@application.route("/debug-network")
+def debug_network():
+    """Debug network connectivity to RDS"""
+    import subprocess
+    import socket
+    
+    try:
+        db_host = "experiment-database.c7agayyc2qqp.eu-west-2.rds.amazonaws.com"
+        db_port = 5432
+        
+        results = []
+        
+        # Test 1: Basic socket connection
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(5)
+            result = sock.connect_ex((db_host, db_port))
+            sock.close()
+            
+            if result == 0:
+                results.append("✅ Socket connection: SUCCESS")
+            else:
+                results.append(f"❌ Socket connection: FAILED (error code: {result})")
+        except Exception as e:
+            results.append(f"❌ Socket connection: ERROR - {str(e)}")
+        
+        # Test 2: DNS resolution
+        try:
+            import socket
+            ip = socket.gethostbyname(db_host)
+            results.append(f"✅ DNS resolution: {db_host} → {ip}")
+        except Exception as e:
+            results.append(f"❌ DNS resolution: FAILED - {str(e)}")
+        
+        # Test 3: Ping test (if available)
+        try:
+            ping_result = subprocess.run(['ping', '-c', '1', '-W', '3', db_host], 
+                                       capture_output=True, text=True, timeout=10)
+            if ping_result.returncode == 0:
+                results.append("✅ Ping: SUCCESS")
+            else:
+                results.append("❌ Ping: FAILED")
+        except Exception as e:
+            results.append(f"⚠️ Ping: Not available - {str(e)}")
+        
+        # Test 4: Telnet-like test
+        try:
+            import telnetlib
+            tn = telnetlib.Telnet()
+            tn.open(db_host, db_port, timeout=5)
+            tn.close()
+            results.append("✅ Telnet test: SUCCESS")
+        except Exception as e:
+            results.append(f"❌ Telnet test: FAILED - {str(e)}")
+        
+        return f"""
+        <html>
+        <head><title>Network Debug</title></head>
+        <body>
+            <h1>Network Connectivity Test</h1>
+            <h2>Target: {db_host}:{db_port}</h2>
+            
+            <h3>Test Results:</h3>
+            <ul>
+                {''.join([f'<li>{result}</li>' for result in results])}
+            </ul>
+            
+            <h3>If All Tests Fail:</h3>
+            <ul>
+                <li>EB and RDS are in different VPCs</li>
+                <li>RDS is in private subnets with no route to EB</li>
+                <li>Network ACLs are blocking traffic</li>
+                <li>RDS subnet routing is incorrect</li>
+            </ul>
+            
+            <h3>Quick Solution:</h3>
+            <p><a href="/use-external-db">Set up external database</a></p>
+        </body>
+        </html>
+        """
+        
+    except Exception as e:
+        return f"Debug error: {str(e)}", 500
+
 if __name__ == "__main__":
     #if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
     #    webbrowser.open('http://127.0.0.1:5001')

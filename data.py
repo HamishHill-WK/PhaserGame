@@ -1,6 +1,7 @@
 from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 import os
+import json
 
 # Create database instance
 db = SQLAlchemy()
@@ -8,10 +9,42 @@ db = SQLAlchemy()
 def configure_database(application):
     """Configure database settings and initialize with Flask application"""
     
-    # Database configuration - PostgreSQL for AWS RDS
-    DATABASE_URL = os.environ.get('EXPERIMENT_DATA_LINK') 
+    # Try to get DATABASE_URL first (standard format)
+    #DATABASE_URL = os.environ.get('DATABASE_URL')
     
-        # Get DATABASE_URL and map it to SQLALCHEMY_DATABASE_URI
+    # If DATABASE_URL is not available, try to get EXPERIMENT_DATA_LINK and parse it
+    # if not DATABASE_URL:
+    #     experiment_data_link = os.environ.get('EXPERIMENT_DATA_LINK')
+    #     if experiment_data_link:
+    #         try:
+    #             # Try to parse as JSON
+    #             db_config = json.loads(experiment_data_link)
+    #             # Construct the connection string from JSON
+    #             username = db_config.get('username', 'postgres')
+    #             password = db_config.get('password', '')
+    #             host = db_config.get('host', 'localhost')
+    #             port = db_config.get('port', 5432)
+    #             # Use dbInstanceIdentifier as database name if no database specified
+    #             database = db_config.get('database', db_config.get('dbInstanceIdentifier', 'postgres'))
+                
+    #             DATABASE_URL = f"postgresql://{username}:{password}@{host}:{port}/{database}"
+                
+    #         except json.JSONDecodeError:
+    #             # If it's not JSON, assume it's already a connection string
+    #             DATABASE_URL = experiment_data_link
+    
+    # # Fallback to RDS environment variables if available
+    # if not DATABASE_URL:
+    rds_hostname = os.environ.get('RDS_HOSTNAME')
+    rds_port = os.environ.get('RDS_PORT', '5432')
+    rds_db_name = os.environ.get('RDS_DB_NAME')
+    rds_username = os.environ.get('RDS_USERNAME')
+    rds_password = os.environ.get('RDS_PASSWORD')
+    
+    if all([rds_hostname, rds_db_name, rds_username, rds_password]):
+        DATABASE_URL = f"postgresql://{rds_username}:{rds_password}@{rds_hostname}:{rds_port}/{rds_db_name}"
+
+    # Set database configuration
     if DATABASE_URL:
         application.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
         application.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -23,7 +56,10 @@ def configure_database(application):
                 'sslmode': 'require'  # AWS RDS requires SSL
             }
         }
+    else:
+        raise ValueError("No database configuration found. Please set DATABASE_URL or EXPERIMENT_DATA_LINK environment variable.")
         
+    print(f"Final DATABASE_URL: {DATABASE_URL}")
     print(application.config)
 
     # Initialize database with application
