@@ -19,15 +19,27 @@ def get_response(context="", user_message="", session_id="default", user_id=None
     
     code = get_gamescript(session_id)
     
+    conversations[session_id].append({
+        "role": "user",
+        "content": user_message,
+        "timestamp": datetime.now().isoformat()
+    })
+    
+    content = conversations[session_id]
+    content.append({
+        "role": "system",
+        "content": code,
+    })
+    
     response = client.responses.create(
         model="gpt-4.1-mini",
-        input=f'{context} {user_message} {code}'
+        instructions="You are a helpful JavaScript and Phaser.js coding assistant. Help the user by providing clear code solutions and guidance.",
+        input=content
     )
     
     # Store conversation in session-specific list
     conversations[session_id].append({
-        "role": "user",
-        "content": user_message,
+        "role": "assistant",
         "response": response.output_text,
         "timestamp": datetime.now().isoformat()
     })

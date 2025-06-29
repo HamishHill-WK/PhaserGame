@@ -358,10 +358,13 @@ def log_consent():
         print("Logging consent...")
         session_id = session.get('session_id', 'unknown')
         consent_participate = request.form.get('consent_participate', False)
+        if consent_participate == 'yes':
+            consent_participate = True
         consent_data = request.form.get('consent_data', False)
+        if consent_data == 'yes':
+            consent_data = True
         user_name = request.form.get('user_name', '')
         signed_date_form = request.form.get('signed_date', datetime.now().isoformat())
-          # Create anonymous user record for consent tracking
         anonymous_user = User(
             signed=user_name,
             consent_data=consent_data,
@@ -378,11 +381,6 @@ def log_consent():
         # Store user ID in session for linking survey and experiment data
         session['user_id'] = anonymous_user.participant_code
 
-        # return jsonify({
-        #     "success": True, 
-        #     "session_id": session_id,
-        #     "participant_code": anonymous_user.participant_code
-        # })
         return redirect(url_for('survey'))
 
         
