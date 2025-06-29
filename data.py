@@ -9,12 +9,10 @@ def configure_database(application):
     """Configure database settings and initialize with Flask application"""
     
     # Database configuration - PostgreSQL for AWS RDS
-    DATABASE_URL = os.environ.get('DATABASE_URL') 
+    DATABASE_URL = os.environ.get('EXPERIMENT_DATA_LINK') 
     
-        # Fallback to SQLite for testing if no PostgreSQL URL is provided
-    if not DATABASE_URL:
-        DATABASE_URL = 'postgresql://postgres:password@localhost:5432/phaser_research_test'
-
+        # Get DATABASE_URL and map it to SQLALCHEMY_DATABASE_URI
+    if DATABASE_URL:
         application.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
         application.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
         application.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
@@ -26,6 +24,8 @@ def configure_database(application):
             }
         }
         
+    print(application.config)
+
     # Initialize database with application
     db.init_app(application)
     
