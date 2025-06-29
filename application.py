@@ -6,7 +6,7 @@ from datetime import datetime
 import assistant
 import secval
 import uuid
-from data import Survey, ExperimentData, User, configure_database
+from data import db, Survey, ExperimentData, User, configure_database, is_development_mode
 from dotenv import load_dotenv 
 
 load_dotenv()
@@ -21,7 +21,10 @@ validator = secval.SimpleSecurityValidator()
 
 application = Flask(__name__)
 application.secret_key = os.environ.get("SECRET_KEY", "your_secret_key")
-db = configure_database(application)
+
+def is_development_mode():
+    """Return True if FLASK_ENV is set to 'development'."""
+    return os.environ.get('FLASK_ENV', '').lower() == 'development'
 
 errors = []
 
@@ -111,8 +114,12 @@ def save_code():
                     "lines_count": len(code_lines)
                 })
             )
-            db.session.add(experiment_data)
-            db.session.commit()
+            # Only commit to DB if not in development mode
+            if not is_development_mode():
+                db.session.add(experiment_data)
+                db.session.commit()
+            else:
+                print("[DEV] Skipping DB commit for experiment_data (development mode)")
         
         return jsonify({"success": True})
     except Exception as e:
@@ -154,11 +161,13 @@ def log_error():
                     "error_type": "javascript_runtime_error"
                 })
             )
-            
-            if(db.session.is_active):
+            # Only commit to DB if not in development mode
+            if not is_development_mode():
                 db.session.add(experiment_data)
                 db.session.commit()
-            
+            else:
+                print("[DEV] Skipping DB commit for experiment_data (development mode)")
+        
         return jsonify({"success": True, "error_id": error_id})
         
     except Exception as e:
@@ -241,8 +250,12 @@ def debrief():
                 "completion_timestamp": datetime.now().isoformat()
             })
         )
-        db.session.add(experiment_data)
-        db.session.commit()
+        # Only commit to DB if not in development mode
+        if not is_development_mode():
+            db.session.add(experiment_data)
+            db.session.commit()
+        else:
+            print("[DEV] Skipping DB commit for experiment_data (development mode)")
     
     return render_template('debrief.html')
 
@@ -331,9 +344,12 @@ def submit_survey():
             ai_tools_description=ai_usage_description,
             submitted_at=datetime.now()
         )
-        
-        db.session.add(survey_data)
-        db.session.commit()
+        # Only commit to DB if not in development mode
+        if not is_development_mode():
+            db.session.add(survey_data)
+            db.session.commit()
+        else:
+            print("[DEV] Skipping DB commit for survey (development mode)")
         
         # Redirect to experiment page
         return redirect(url_for('gameAIassistant'))
@@ -373,10 +389,12 @@ def log_consent():
             signed_date=signed_date_form
         )
         
-        db.session.add(anonymous_user)
-        db.session.flush()  # Get the user ID without committing
-        
-        print(f"Anonymous user created with ID: {anonymous_user.id}, Participant Code: {anonymous_user.participant_code}")
+        # Only commit to DB if not in development mode
+        if not is_development_mode():
+            db.session.add(anonymous_user)
+            db.session.flush()  # Get the user ID without committing
+        else:
+            print("[DEV] Skipping DB commit for anonymous user (development mode)")
 
         # Store user ID in session for linking survey and experiment data
         session['user_id'] = anonymous_user.participant_code
@@ -732,6 +750,8 @@ def debug_network():
         
     except Exception as e:
         return f"Debug error: {str(e)}", 500
+
+# No need to check for is_localhost() before configuring db, db is always configured
 
 if __name__ == "__main__":
     #if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':

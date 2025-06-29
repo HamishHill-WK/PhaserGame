@@ -19,16 +19,22 @@ def get_response(context="", user_message="", session_id="default", user_id=None
     
     code = get_gamescript(session_id)
     
+    # Append user message (no timestamp for OpenAI input)
     conversations[session_id].append({
         "role": "user",
-        "content": user_message,
-        "timestamp": datetime.now().isoformat()
+        "content": user_message
     })
     
-    content = conversations[session_id]
+    # Prepare content for OpenAI (strip timestamps)
+    content = [
+        {"role": m["role"], "content": m["content"]}
+        for m in conversations[session_id] if "role" in m and "content" in m
+    ]
+    
+    # Add system message (no timestamp)
     content.append({
         "role": "system",
-        "content": code,
+        "content": code
     })
     
     response = client.responses.create(
@@ -37,7 +43,7 @@ def get_response(context="", user_message="", session_id="default", user_id=None
         input=content
     )
     
-    # Store conversation in session-specific list
+    # Store conversation in session-specific list (with timestamp for local tracking)
     conversations[session_id].append({
         "role": "assistant",
         "response": response.output_text,
