@@ -12,15 +12,15 @@ def is_development_mode():
 
 def configure_database(application):
     """Configure database settings and initialize with Flask application"""
-    DATABASE_URL = os.environ.get('DATABASE_URL')
-    if not DATABASE_URL:
-        rds_hostname = os.environ.get('RDS_HOSTNAME')
-        rds_port = os.environ.get('RDS_PORT', '5432')
-        rds_db_name = os.environ.get('RDS_DB_NAME')
-        rds_username = os.environ.get('RDS_USERNAME')
-        rds_password = os.environ.get('RDS_PASSWORD')
-        if all([rds_hostname, rds_db_name, rds_username, rds_password]):
-            DATABASE_URL = f"postgresql://{rds_username}:{rds_password}@{rds_hostname}:{rds_port}/{rds_db_name}"
+    #DATABASE_URL = os.environ.get('DATABASE_URL')
+    #if not DATABASE_URL:
+    rds_hostname = os.environ.get('RDS_HOSTNAME')
+    rds_port = os.environ.get('RDS_PORT', '5432')
+    rds_db_name = os.environ.get('RDS_DB_NAME')
+    rds_username = os.environ.get('RDS_USERNAME')
+    rds_password = os.environ.get('RDS_PASSWORD')
+    if all([rds_hostname, rds_db_name, rds_username, rds_password]):
+        DATABASE_URL = f"postgresql://{rds_username}:{rds_password}@{rds_hostname}:{rds_port}/{rds_db_name}"
     if DATABASE_URL:
         application.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
         application.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False

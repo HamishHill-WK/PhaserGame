@@ -39,7 +39,7 @@ def get_response(context="", user_message="", session_id="default", user_id=None
     
     response = client.responses.create(
         model="gpt-4.1-mini",
-        instructions="You are a helpful JavaScript and Phaser.js coding assistant. Help the user by providing clear code solutions and guidance.",
+        instructions="You are a JavaScript and Phaser.js coding assistant. You are helping a game developer implement mechanics. Provide clear, working code solutions and explanations.",
         input=content
     )
     
