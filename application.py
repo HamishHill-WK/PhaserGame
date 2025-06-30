@@ -305,21 +305,16 @@ def get_user_game_code():
 @application.route("/submit_survey", methods=["POST"])
 def submit_survey():
     try:
-        # Get session ID to link survey to user journey
         session_id = session.get('session_id', 'unknown')
         user_id = get_int_user_id()  # Get anonymous user ID from consent
         print(f"Session ID: {session_id}, User ID: {user_id}")
-        # Ensure user has given consent
-        if not user_id:
-            return jsonify({"success": False, "error": "Consent required before submitting survey"})
-        
+        # Remove consent requirement: allow to proceed regardless of user_id
         # Get form data
         game_dev_experience_description = request.form.get('gamedev_details')
         game_dev_experience_level = request.form.get('game_dev_experience_detailed')
         game_dev_proffessional_level = request.form.get('gamedev_position')
         game_dev_experience_years = request.form.get('gamedev_years', type=float)
         game_engines = request.form.getlist('engines')  # Multiple selections
-        
         programming_experience_level = request.form.get('programming_experience_detailed')
         programming_proffessional_level = request.form.get('programming_position')
         programming_experience_description = request.form.get('programming_details')
@@ -330,11 +325,10 @@ def submit_survey():
         uses_ai_tools = request.form.get('uses_ai_tools') == 'yes'
         ai_usage_details = request.form.getlist('ai_usage')
         ai_usage_description = request.form.get('ai_usage_details', '')  # Additional details
-    
         # Save to database with session tracking
         survey_data = Survey(
             session_id=session_id,
-            user_id=user_id,  # Link to anonymous user from consent
+            user_id=user_id,  # Link to anonymous user from consent if available
             game_dev_experience_description=game_dev_experience_description,
             game_dev_experience_level=game_dev_experience_level,
             game_dev_proffessional_level=game_dev_proffessional_level,
@@ -352,16 +346,13 @@ def submit_survey():
             ai_tools_description=ai_usage_description,
             submitted_at=datetime.now()
         )
-        # Only commit to DB if not in development mode
         if not is_development_mode():
             db.session.add(survey_data)
             db.session.commit()
         else:
             print("[DEV] Skipping DB commit for survey (development mode)")
-        
-        # Redirect to experiment page
-        return redirect(url_for('gameAIassistant'))
-        
+        # Redirect to tutorial page instead of experiment
+        return redirect(url_for('tutorial'))
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
@@ -787,6 +778,14 @@ def debug_network():
         
     except Exception as e:
         return f"Debug error: {str(e)}", 500
+
+@application.route("/tutorial")
+def tutorial():
+    return render_template('tutorial.html')
+
+@application.route("/start-experiment", methods=["GET", "POST"])
+def start_experiment():
+    return redirect(url_for('gameAIassistant'))
 
 if __name__ == "__main__":
     #if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
