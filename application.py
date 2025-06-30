@@ -67,15 +67,22 @@ def survey():
     
     return render_template('survey.html', session_id=session_id)
 
+def get_int_user_id():
+    user_id = session.get('user_id')
+    if user_id is None:
+        return None
+    try:
+        return int(user_id)
+    except (ValueError, TypeError):
+        return None
+
 @application.route("/save-code", methods=["POST"])
 def save_code():
     try:
         data = request.get_json()
         code = data.get("code")
-        
-        # Get session ID and user ID for tracking
         session_id = session.get('session_id', 'unknown')
-        user_id = session.get('user_id')
+        user_id = get_int_user_id()
         
         # Should be:
         validation_result = validator.validate(code)
@@ -133,8 +140,8 @@ def log_error():
         
         # Get session ID and user ID for tracking
         session_id = session.get('session_id', 'unknown')
-        user_id = session.get('user_id')
-        
+        user_id = get_int_user_id()
+
         # Generate a unique error code
         error_id = f"ERR-{uuid.uuid4().hex[:8]}"
 
@@ -236,7 +243,7 @@ def LLMrequest():
 def debrief():
     # Track experiment completion
     session_id = session.get('session_id', 'unknown')
-    user_id = session.get('user_id')
+    user_id = get_int_user_id()
     
     if user_id and request.method == "GET":
         # Log that user reached debrief (experiment completion)
@@ -299,7 +306,7 @@ def submit_survey():
     try:
         # Get session ID to link survey to user journey
         session_id = session.get('session_id', 'unknown')
-        user_id = session.get('user_id')  # Get anonymous user ID from consent
+        user_id = get_int_user_id()  # Get anonymous user ID from consent
         print(f"Session ID: {session_id}, User ID: {user_id}")
         # Ensure user has given consent
         if not user_id:
@@ -388,20 +395,15 @@ def log_consent():
             participant_code=f"P{uuid.uuid4().hex[:8].upper()}",  # Anonymous participant code
             signed_date=signed_date_form
         )
-        
         # Only commit to DB if not in development mode
         if not is_development_mode():
             db.session.add(anonymous_user)
             db.session.flush()  # Get the user ID without committing
+            session['user_id'] = anonymous_user.id  # Store integer ID
         else:
             print("[DEV] Skipping DB commit for anonymous user (development mode)")
-
-        # Store user ID in session for linking survey and experiment data
-        session['user_id'] = anonymous_user.participant_code
-
+            session['user_id'] = None
         return redirect(url_for('survey'))
-
-        
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
@@ -423,26 +425,26 @@ def init_database():
     try:
         print("Creating database tables...")
         db.create_all()
-        print("✅ Database tables created successfully!")
+        print("Database tables created successfully!")
         return """
         <html>
         <head><title>Database Initialized</title></head>
         <body>
-            <h1>✅ Database Initialized Successfully</h1>
+            <h1>Database Initialized Successfully</h1>
             <p>All database tables have been created.</p>
             <a href="/">Go to main site</a>
         </body>
         </html>
         """
     except Exception as e:
-        print(f"❌ Error creating database tables: {str(e)}")
+        print(f"Error creating database tables: {str(e)}")
         import traceback
         traceback.print_exc()
         return f"""
         <html>
         <head><title>Database Error</title></head>
         <body>
-            <h1>❌ Database Initialization Failed</h1>
+            <h1>Database Initialization Failed</h1>
             <p>Error: {str(e)}</p>
         </body>
         </html>
@@ -537,7 +539,7 @@ def test_basic_connection():
         # Get the database URI
         uri = application.config.get('SQLALCHEMY_DATABASE_URI')
         if not uri:
-            return "❌ No database URI configured", 500
+            return " No database URI configured", 500
         
         # Parse the URI
         parsed = urlparse(uri)
@@ -572,7 +574,7 @@ def test_basic_connection():
         <html>
         <head><title>Connection Test</title></head>
         <body>
-            <h1>✅ Database Connection Successful!</h1>
+            <h1>Database Connection Successful!</h1>
             <h2>Connection Details:</h2>
             <ul>
                 <li><strong>Host:</strong> {connection_info['host']}</li>
@@ -598,7 +600,7 @@ def test_basic_connection():
         <html>
         <head><title>Connection Failed</title></head>
         <body>
-            <h1>❌ Database Connection Failed</h1>
+            <h1>Database Connection Failed</h1>
             <h2>Error:</h2>
             <p>{str(e)}</p>
             <h2>Full Error Details:</h2>
@@ -620,11 +622,11 @@ def init_database_safe():
     try:
         # Test connection first
         db.session.execute('SELECT 1')
-        print("✅ Database connection test passed")
+        print("Database connection test passed")
         
         # Create tables
         db.create_all()
-        print("✅ Database tables created")
+        print("Database tables created")
         
         # Verify tables were created
         from sqlalchemy import inspect
@@ -635,7 +637,7 @@ def init_database_safe():
         <html>
         <head><title>Database Initialized</title></head>
         <body>
-            <h1>✅ Database Initialized Successfully!</h1>
+            <h1>Database Initialized Successfully!</h1>
             <h2>Created Tables:</h2>
             <ul>
                 {''.join([f'<li>{table}</li>' for table in tables])}
@@ -656,7 +658,7 @@ def init_database_safe():
         <html>
         <head><title>Database Init Failed</title></head>
         <body>
-            <h1>❌ Database Initialization Failed</h1>
+            <h1>Database Initialization Failed</h1>
             <h2>Error:</h2>
             <p>{str(e)}</p>
             <h2>Full Error Details:</h2>
@@ -687,30 +689,30 @@ def debug_network():
             sock.close()
             
             if result == 0:
-                results.append("✅ Socket connection: SUCCESS")
+                results.append("Socket connection: SUCCESS")
             else:
-                results.append(f"❌ Socket connection: FAILED (error code: {result})")
+                results.append(f"Socket connection: FAILED (error code: {result})")
         except Exception as e:
-            results.append(f"❌ Socket connection: ERROR - {str(e)}")
+            results.append(f"Socket connection: ERROR - {str(e)}")
         
         # Test 2: DNS resolution
         try:
             import socket
             ip = socket.gethostbyname(db_host)
-            results.append(f"✅ DNS resolution: {db_host} → {ip}")
+            results.append(f"DNS resolution: {db_host} → {ip}")
         except Exception as e:
-            results.append(f"❌ DNS resolution: FAILED - {str(e)}")
+            results.append(f"DNS resolution: FAILED - {str(e)}")
         
         # Test 3: Ping test (if available)
         try:
             ping_result = subprocess.run(['ping', '-c', '1', '-W', '3', db_host], 
                                        capture_output=True, text=True, timeout=10)
             if ping_result.returncode == 0:
-                results.append("✅ Ping: SUCCESS")
+                results.append("Ping: SUCCESS")
             else:
-                results.append("❌ Ping: FAILED")
+                results.append("Ping: FAILED")
         except Exception as e:
-            results.append(f"⚠️ Ping: Not available - {str(e)}")
+            results.append(f"Ping: Not available - {str(e)}")
         
         # Test 4: Telnet-like test
         try:
@@ -718,9 +720,9 @@ def debug_network():
             tn = telnetlib.Telnet()
             tn.open(db_host, db_port, timeout=5)
             tn.close()
-            results.append("✅ Telnet test: SUCCESS")
+            results.append("Telnet test: SUCCESS")
         except Exception as e:
-            results.append(f"❌ Telnet test: FAILED - {str(e)}")
+            results.append(f"Telnet test: FAILED - {str(e)}")
         
         return f"""
         <html>
