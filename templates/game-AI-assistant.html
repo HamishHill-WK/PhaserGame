@@ -101,6 +101,7 @@
                     <button id="save-code">Save Changes</button>
                     <button id="reload-game">Reload Game</button>
                     <button id="clear-chat">Clear Chat</button>
+                    <button id="finish-experiment-btn" class="tab-button">Finish Experiment</button>
                 </div>
             </div>            <div class="tab-content hidden" id="editor"></div>
             <div class="console-container tab-content" id="console-container">
@@ -113,6 +114,40 @@
             </div>
         </div>
     </div>
+    <div class="experiment-actions" style="margin-top: 24px; text-align: center;">
+        </div>
+        <div id="finish-confirm-modal" style="display:none; position:fixed; left:0; top:0; width:100vw; height:100vh; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+            <div style="background:#fff; padding:32px; border-radius:8px; max-width:400px; margin:auto; text-align:center;">
+                <p id="finish-modal-message">You have not completed all tasks. Are you sure you want to finish the experiment early?</p>
+                <button id="proceed-debrief-btn" class="tab-button">Proceed to Debrief</button>
+                <button id="continue-experiment-btn" class="tab-button">Continue Experiment</button>
+            </div>
+        </div>
+    
+        <script>
+        // Helper to check if all tasks are complete
+        function allTasksComplete() {
+            for (let i = 1; i <= 8; i++) {
+                if (!document.getElementById('task' + i).checked) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        document.getElementById('finish-experiment-btn').addEventListener('click', function() {
+            if (allTasksComplete()) {
+                window.location.href = "{{ url_for('debrief') }}";
+            } else {
+                document.getElementById('finish-confirm-modal').style.display = 'flex';
+            }
+        });
+        document.getElementById('proceed-debrief-btn').addEventListener('click', function() {
+            window.location.href = "{{ url_for('debrief') }}";
+        });
+        document.getElementById('continue-experiment-btn').addEventListener('click', function() {
+            document.getElementById('finish-confirm-modal').style.display = 'none';
+        });
+        </script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/aistyle.css') }}">
     <script type="module">
