@@ -10,24 +10,42 @@ client = OpenAI()
 # Dictionary to store conversations by session_id
 conversations = {}
 
-def get_response(user_message="", session_id="default", user_id=None):
+def get_response(context="", user_message="", session_id="default", user_id=None):
     # Initialize conversation for new sessions
     if session_id not in conversations:
         conversations[session_id] = []
     
-    print(f"{user_id}, {session_id}, {user_message}")
+    print(f"Assistant.py: {user_id}, {session_id}, {user_message}")
     
     code = get_gamescript(session_id)
     
-    response = client.responses.create(
-        model="gpt-4.1-mini",
-        input=f'{user_message} {code}'
-    )
-    
-    # Store conversation in session-specific list
+    # Append user message (no timestamp for OpenAI input)
     conversations[session_id].append({
         "role": "user",
-        "content": user_message,
+        "content": user_message
+    })
+    
+    # Prepare content for OpenAI (strip timestamps)
+    content = [
+        {"role": m["role"], "content": m["content"]}
+        for m in conversations[session_id] if "role" in m and "content" in m
+    ]
+    
+    # Add system message (no timestamp)
+    content.append({
+        "role": "system",
+        "content": code
+    })
+    
+    response = client.responses.create(
+        model="gpt-4.1-mini",
+        instructions="You are a JavaScript and Phaser.js coding assistant. You are helping a game developer implement mechanics. Provide clear, working code solutions and explanations.",
+        input=content
+    )
+    
+    # Store conversation in session-specific list (with timestamp for local tracking)
+    conversations[session_id].append({
+        "role": "assistant",
         "response": response.output_text,
         "timestamp": datetime.now().isoformat()
     })
@@ -35,10 +53,7 @@ def get_response(user_message="", session_id="default", user_id=None):
 # CHECK RATE LIMITS FROM RESPONSE
     headers = getattr(response, 'headers', {})
     requests_left = headers.get('x-ratelimit-remaining-requests', 'Unknown')
-    tokens_left = headers.get('x-ratelimit-remaining-tokens', 'Unknown')
-    
-    print(f"📊 Rate Limits - Requests left: {requests_left}, Tokens left: {tokens_left}")
-    
+    tokens_left = headers.get('x-ratelimit-remaining-tokens', 'Unknown')    
     
     print(f"💬 Response: {response}")
     # WARN IF LOW

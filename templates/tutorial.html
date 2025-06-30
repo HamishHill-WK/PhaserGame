@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Experiment Tutorial</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.24.1/ace.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/aistyle.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tutorial.css') }}">
+    <style>
+    /* All tutorial styles moved to tutorial.css */
+    </style>
+</head>
+<body>   
+    <div id="tutorial-banner" style="background:#007bff; color:#fff; text-align:center; padding:14px 0; font-size:1.15em; font-weight:600; letter-spacing:0.5px; position:relative;">
+        This is a tutorial, the experiment will appear on the next page
+        <button id="restart-tutorial-btn" style="margin-left:24px; font-size:1em; padding:6px 18px; background:#fff; color:#007bff; border-radius:6px; border:none; font-weight:600; cursor:pointer; box-shadow:0 1px 4px rgba(0,0,0,0.07); transition:background 0.2s; position:absolute; right:32px; top:50%; transform:translateY(-50%);">Restart Tutorial</button>
+    </div>
+    <div id="main-container">
+        <div id="game-section">
+            <div id="game-container">
+                <img src="{{ url_for('static', filename='assets/gameexample.png') }}" alt="Game Example" style="width:100%;max-width:480px;display:block;margin:0 auto;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+            </div>
+            <div class="controls">
+                <button id="restart-button">Restart Game</button>
+                <p>Use your mouse to control the paddle. Click to launch the ball.</p>
+            </div>
+            <div id="debug-console-row" style="display: flex; align-items: flex-start; gap: 24px;">
+                <div id="debug-console-output" style="flex:1; min-width:0;">
+                    <p>Debug Console Output:</p>
+                    <div id="debug-console"></div>
+                </div>
+                <div id="start-experiment-container" style="display:none; align-self:flex-start; margin-top:0;">
+                    <form action="{{ url_for('start_experiment') }}" method="get">
+                        <button class="tab-button" type="submit" style="font-size:1.35em; padding:18px 48px; background:#28a745; color:#fff; border-radius:8px; border:none; box-shadow:0 2px 8px rgba(40,167,69,0.15); font-weight:700; letter-spacing:0.5px; transition:background 0.2s;">Start Experiment</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+          <div class="editor-container">
+            <div class="editor-header">
+                <div class="timer-container">
+                    <div class="timer-display" id="experiment-timer">
+                        Time Remaining: <span id="timer-text">60:00</span>
+                    </div>
+                </div>
+                <div class="dropdown-container">
+                    <button class="dropdown-btn" onclick="toggleDropdown()">Tasks ▼</button>
+                    <div id="dropdown-content" class="dropdown-content">                        <div class="dropdown-content-container" id="task1-container">
+                            <label class="checkbox-item">
+                                <input type="checkbox" id="task1" disabled> Example Task 1
+                                <div class="checkbox-description" id="task1-description">
+                                    <p><strong>Example Task 1:</strong> Add a new button to the game interface.</p>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="dropdown-content-container" id="task2-container">
+                            <label class="checkbox-item">
+                                <input type="checkbox" id="task2" disabled> Example Task 2
+                                <div class="checkbox-description" id="task2-description">
+                                    <p><strong>Example Task 2:</strong> Change the background color of the game area.</p>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>                <div class="dropdown-current-task" id="current-task">
+                    <span id="current-task-text">Current Task: Example Task 1</span>
+                </div>
+                <div class="tabs" id="tabs">
+                    <button id="code-button" class="tab-button not-active" onclick="switchTab('editor')" data-tab="editor">Code</button>
+                    <button id="console-button" class="tab-button selected-tab-button" onclick="switchTab('console-container')" data-tab="console-container">Console</button>
+                </div>                <div class="editor-actions">
+                    <button id="save-code">Save Changes</button>
+                    <button id="reload-game">Reload Game</button>
+                    <button id="clear-chat">Clear Chat</button>
+                    <button id="finish-experiment-btn" class="tab-button">Finish Experiment</button>
+                </div>
+            </div>            <div class="tab-content hidden" id="editor"></div>
+            <div class="console-container tab-content" id="console-container">
+                <div class="console-output" id="console-output"></div>
+                    <form id="input-form">
+                        <textarea type="text" id="user-input" placeholder="Enter your command" autocomplete="off" disabled style="background:#f5f5f5; color:#888; cursor:not-allowed;"></textarea>
+                        <button class="tab-button" id="submit-button" type="submit" disabled style="background:#ccc; color:#888; cursor:not-allowed;">Send</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="{{ url_for('static', filename='js/error-handler.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/timer.js') }}"></script>
+    <!-- <script src="{{ url_for('static', filename='js/game.js') }}"></script> -->
+    <script src="{{ url_for('static', filename='js/secure-executor.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/editor.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/dropdown.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/tutorial-guide.js') }}"></script>
+    <script>
+    // Disable all buttons except tab switching in the tutorial
+    document.addEventListener('DOMContentLoaded', function() {
+        // Disable all buttons except tab buttons
+        document.querySelectorAll('button').forEach(function(btn) {
+            if (!btn.classList.contains('tab-button') || btn.id === 'finish-experiment-btn') {
+                // If not a tab button, or is the finish experiment button, disable it
+                btn.disabled = true;
+                btn.style.background = '#ccc';
+                btn.style.color = '#888';
+                btn.style.cursor = 'not-allowed';
+            }
+        });
+        // Specifically disable the restart game button
+        var restartBtn = document.getElementById('restart-button');
+        if (restartBtn) {
+            restartBtn.disabled = true;
+            restartBtn.style.background = '#ccc';
+            restartBtn.style.color = '#888';
+            restartBtn.style.cursor = 'not-allowed';
+        }
+        // Disable save, reload, clear, finish experiment
+        ['save-code', 'reload-game', 'clear-chat', 'finish-experiment-btn'].forEach(function(id) {
+            var b = document.getElementById(id);
+            if (b) {
+                b.disabled = true;
+                b.style.background = '#ccc';
+                b.style.color = '#888';
+                b.style.cursor = 'not-allowed';
+            }
+        });
+        // Disable Start Experiment button until tutorial is complete (already handled)
+    });
+    // Show Start Experiment button only after tutorial is complete
+    window.tutorialComplete = function() {
+        var btnContainer = document.getElementById('start-experiment-container');
+        if (btnContainer) btnContainer.style.display = 'block';
+    };
+    // Restart tutorial on button click
+    document.addEventListener('DOMContentLoaded', function() {
+        var restartBtn = document.getElementById('restart-tutorial-btn');
+        if (restartBtn) {
+            restartBtn.onclick = function(e) {
+                e.preventDefault();
+                if (window.startTutorialGuide) window.startTutorialGuide();
+            };
+        }
+    });
+    // Disable code editor in the tutorial
+    document.addEventListener('DOMContentLoaded', function() {
+        // Wait for ace editor to be initialized
+        var aceInterval = setInterval(function() {
+            if (window.ace && ace.edit && document.getElementById('editor')) {
+                try {
+                    var editor = ace.edit('editor');
+                    editor.setValue("// In the real experiment, your game code will appear here.\n// This is a placeholder for demonstration purposes.\n\nconsole.log('Hello, world!');\n", -1);
+                    editor.setReadOnly(true);
+                    editor.renderer.$cursorLayer.element.style.display = "none";
+                } catch (e) {}
+                clearInterval(aceInterval);
+            }
+        }, 200);
+    });
+    </script>
+</body>
+</html>

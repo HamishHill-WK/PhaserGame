@@ -1,34 +1,52 @@
 from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 import os
+import json
 
 # Create database instance
 db = SQLAlchemy()
 
+def is_development_mode():
+    """Return True if FLASK_ENV is set to 'development'."""
+    return os.environ.get('FLASK_ENV', '').lower() == 'development'
+
 def configure_database(application):
     """Configure database settings and initialize with Flask application"""
-    
-    # Database configuration - PostgreSQL for AWS RDS
-    DATABASE_URL = os.environ.get('DATABASE_URL') 
-    
-        # Fallback to SQLite for testing if no PostgreSQL URL is provided
-    if not DATABASE_URL:
-        DATABASE_URL = 'postgresql://postgres:password@localhost:5432/phaser_research_test'
-
+    #DATABASE_URL = os.environ.get('DATABASE_URL')
+    #if not DATABASE_URL:
+    rds_hostname = os.environ.get('RDS_HOSTNAME')
+    rds_port = os.environ.get('RDS_PORT', '5432')
+    rds_db_name = os.environ.get('RDS_DB_NAME')
+    rds_username = os.environ.get('RDS_USERNAME')
+    rds_password = os.environ.get('RDS_PASSWORD')
+    if all([rds_hostname, rds_db_name, rds_username, rds_password]):
+        DATABASE_URL = f"postgresql://{rds_username}:{rds_password}@{rds_hostname}:{rds_port}/{rds_db_name}"
+    if DATABASE_URL:
         application.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
         application.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-        application.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-            'pool_size': 10,
-            'pool_recycle': 120,
-            'pool_pre_ping': True,
-            'connect_args': {
-                'sslmode': 'require'  # AWS RDS requires SSL
+        if is_development_mode():
+            application.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+                'pool_size': 5,
+                'pool_recycle': 60,
+                'pool_pre_ping': True,
+                'connect_args': {
+                    'sslmode': 'prefer'
+                }
             }
-        }
-        
-    # Initialize database with application
+        else:
+            application.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+                'pool_size': 10,
+                'pool_recycle': 120,
+                'pool_pre_ping': True,
+                'connect_args': {
+                    'sslmode': 'require'  # AWS RDS requires SSL
+                }
+            }
+    else:
+        raise ValueError("No database configuration found. Please set DATABASE_URL or RDS environment variables.")
+    print(f"Final DATABASE_URL: {DATABASE_URL}")
+    print(application.config)
     db.init_app(application)
-    
     return db
 
 class User(db.Model):
