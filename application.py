@@ -11,16 +11,17 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-print(f"DATABASE_URL: {os.environ.get('DATABASE_URL', 'NOT SET')}")
-print(f"SECRET_KEY: {os.environ.get('SECRET_KEY', 'NOT SET')}")
-print(f"Current working directory: {os.getcwd()}")
-print(f".env file exists: {os.path.exists('.env')}")
-print("=" * 50)
-
 validator = secval.SimpleSecurityValidator()
 
 application = Flask(__name__)
 application.secret_key = os.environ.get("SECRET_KEY", "your_secret_key")
+
+# IMPORTANT: Initialize database with Flask app
+try:
+    configure_database(application)
+    print("Database configured successfully!")
+except Exception as e:
+    print(f"Error configuring database: {e}")
 
 def is_development_mode():
     """Return True if FLASK_ENV is set to 'development'."""
@@ -386,8 +387,8 @@ def log_consent():
         consent_data = request.form.get('consent_data', False)
         if consent_data == 'yes':
             consent_data = True
-        user_name = request.form.get('user_name', '')
-        signed_date_form = request.form.get('signed_date', datetime.now().isoformat())
+        user_name = request.form.get('signature', '')
+        signed_date_form = request.form.get('date', datetime.now().isoformat())
         anonymous_user = User(
             signed=user_name,
             consent_data=consent_data,
@@ -400,6 +401,7 @@ def log_consent():
             db.session.add(anonymous_user)
             db.session.flush()  # Get the user ID without committing
             session['user_id'] = anonymous_user.id  # Store integer ID
+            db.session.commit()  # Now commit
         else:
             print("[DEV] Skipping DB commit for anonymous user (development mode)")
             session['user_id'] = None
@@ -413,9 +415,6 @@ def init_db():
     with application.app_context():
         db.create_all()
         print("Database tables created successfully!")
-
-# Uncomment to initialize database on first run
-#init_db()
 
 # Add these routes to your application.py
 
@@ -473,6 +472,7 @@ def test_database():
             "success": False,
             "error": str(e)
         }), 500
+
 # Add these debug routes to your application.py
 
 @application.route("/debug-env")
@@ -667,8 +667,43 @@ def init_database_safe():
         </html>
         """, 500
 
-# Add this to your application.py for network debugging
-
+@application.route("/health-check")
+def health_check():
+    """Simple health check that shows if data exists"""
+    try:
+        user_count = User.query.count()
+        survey_count = Survey.query.count()
+        experiment_count = ExperimentData.query.count()
+        
+        # Get latest entries
+        latest_user = User.query.order_by(User.signed_date.desc()).first()
+        latest_survey = Survey.query.order_by(Survey.submitted_at.desc()).first()
+        latest_experiment = ExperimentData.query.order_by(ExperimentData.timestamp.desc()).first()
+        
+        return jsonify({
+            "status": "healthy",
+            "database_connected": True,
+            "counts": {
+                "users": user_count,
+                "surveys": survey_count,
+                "experiments": experiment_count,
+                "total": user_count + survey_count + experiment_count
+            },
+            "latest_activity": {
+                "latest_user": latest_user.signed_date.isoformat() if latest_user else None,
+                "latest_survey": latest_survey.submitted_at.isoformat() if latest_survey else None,
+                "latest_experiment": latest_experiment.timestamp.isoformat() if latest_experiment else None
+            },
+            "has_data": (user_count + survey_count + experiment_count) > 0
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "database_connected": False,
+            "error": str(e)
+        }), 500
+        
 @application.route("/debug-network")
 def debug_network():
     """Debug network connectivity to RDS"""
@@ -752,8 +787,6 @@ def debug_network():
         
     except Exception as e:
         return f"Debug error: {str(e)}", 500
-
-# No need to check for is_localhost() before configuring db, db is always configured
 
 if __name__ == "__main__":
     #if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
