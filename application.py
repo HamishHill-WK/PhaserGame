@@ -80,21 +80,20 @@ def assign_balanced_condition():
         # Count current assignments
         ai_count = User.query.filter_by(assigned_condition='ai', consent_participate=True).count()
         control_count = User.query.filter_by(assigned_condition='control', consent_participate=True).count()
-        
+        total_count = ai_count + control_count
         print(f"Current balance - AI: {ai_count}, Control: {control_count}")
-        
-        # Assign to the smaller group
-        if ai_count < control_count:
+        # If no participants yet, assign first to 'ai'
+        if total_count == 0:
+            assigned_condition = 'ai'
+        elif ai_count < control_count:
             assigned_condition = 'ai'
         elif control_count < ai_count:
             assigned_condition = 'control'
         else:
             # Equal numbers - randomly assign
             assigned_condition = random.choice(['ai', 'control'])
-        
         print(f"Assigned condition: {assigned_condition}")
         return assigned_condition
-        
     except Exception as e:
         print(f"Error in condition assignment: {e}")
         # Fallback to random assignment
