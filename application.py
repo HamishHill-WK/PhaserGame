@@ -933,5 +933,31 @@ def log_task_check():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@application.route("/log-game-reload", methods=["POST"])
+def log_game_reload():
+    """Log when the user reloads the game window."""
+    try:
+        session_id = session.get('session_id', 'unknown')
+        user_id = get_int_user_id()
+        timestamp = datetime.now()
+        db_entry = ExperimentData(
+            session_id=session_id,
+            user_id=user_id,
+            user_action="game_reload",
+            timestamp=timestamp,
+            data=json.dumps({
+                "message": "Game window reloaded",
+                "timestamp": timestamp.isoformat()
+            })
+        )
+        if not is_development_mode():
+            db.session.add(db_entry)
+            db.session.commit()
+        else:
+            print("[DEV] Skipping DB commit for game_reload (development mode)")
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
 if __name__ == "__main__":
     application.run(host='0.0.0.0', debug=False, port=5001)
