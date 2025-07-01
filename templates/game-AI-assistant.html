@@ -148,10 +148,24 @@
                 <button id="proceed-debrief-btn" class="tab-button">Proceed to Debrief</button>
                 <button id="continue-experiment-btn" class="tab-button">Continue Experiment</button>
             </div>
-        </div>
-    
+        </div>   
         <script>
-        // Helper to check if all tasks are complete
+        window.assigned_condition = "{{ assigned_condition|default('ai') }}";
+
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.assigned_condition === "control") {
+                // Hide AI chat (console-container)
+                document.getElementById('console-container').style.display = 'none';
+                // Show code editor tab content
+                document.getElementById('editor').classList.remove('hidden');
+                // Hide tabs for switching
+                document.getElementById('tabs').style.display = 'none';
+                // Set code editor as default
+                document.getElementById('editor').classList.remove('hidden');
+                document.getElementById('console-container').classList.add('hidden');
+            }
+        });
+
         function allTasksComplete() {
             for (let i = 1; i <= 8; i++) {
                 if (!document.getElementById('task' + i).checked) {
@@ -212,13 +226,6 @@
         </script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/aistyle.css') }}">
-    <script type="module">
-       // import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
-
-        //const supabaseUrl = 'https://svfxmonmxhfnksfozzdp.supabase.co'
-        //const supabaseKey = 'your-anon-key-here' // Replace with your actual anon key
-        //const supabaseClient = createClient(supabaseUrl, supabaseKey) 
-    </script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="{{ url_for('static', filename='js/error-handler.js') }}"></script>
     <script src="{{ url_for('static', filename='js/timer.js') }}"></script>
