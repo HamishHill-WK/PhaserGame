@@ -120,3 +120,11 @@ class CodeChange(db.Model):
     errors_before = db.Column(db.Integer, nullable=False)
     errors_after = db.Column(db.Integer, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+class TaskCheck(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    session_id = db.Column(db.String(100), nullable=False)
+    task_id = db.Column(db.String(50), nullable=False)  # e.g., 'task1', 'task2', etc.
+    checked = db.Column(db.Boolean, nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)

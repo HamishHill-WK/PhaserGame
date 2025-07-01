@@ -6,7 +6,7 @@ from datetime import datetime
 import assistant
 import secval
 import uuid
-from data import db, Survey, ExperimentData, User, configure_database, is_development_mode
+from data import db, Survey, ExperimentData, User, configure_database, is_development_mode, TaskCheck
 from dotenv import load_dotenv 
 
 load_dotenv()
@@ -106,6 +106,49 @@ def save_code():
         user_file_path = os.path.join(application.static_folder, "js", "users", f"game_{session_id}.js")
         os.makedirs(os.path.dirname(user_file_path), exist_ok=True)
         
+        # --- Compute code diff for logging ---
+        import difflib
+        prev_code = ""
+        if os.path.exists(user_file_path):
+            with open(user_file_path, "r", encoding="utf-8") as f:
+                prev_code = f.read()
+        prev_lines = prev_code.split('\n') if prev_code else []
+        diff = list(difflib.unified_diff(prev_lines, code_lines, lineterm=''))
+        # --- Check if AI assistant was used since last save ---
+        from dateutil.parser import isoparse
+        last_ai_usage = session.get('last_ai_usage')
+        last_code_save = session.get('last_code_save')
+        used_ai = False
+        if last_ai_usage:
+            try:
+                ai_time = isoparse(last_ai_usage)
+                if last_code_save:
+                    save_time = isoparse(last_code_save)
+                    used_ai = ai_time > save_time
+                else:
+                    used_ai = True  # No previous save, but AI was used
+            except Exception:
+                used_ai = False
+        # Only log if there are changes
+        if user_id and diff:
+            experiment_data = ExperimentData(
+                session_id=session_id,
+                user_id=user_id,
+                user_action="code_change",
+                timestamp=datetime.now(),
+                data=json.dumps({
+                    "file_name": file_name,
+                    "diff": diff,
+                    "used_ai_assistant_since_last_save": used_ai
+                })
+            )
+            if not is_development_mode():
+                db.session.add(experiment_data)
+                db.session.commit()
+            else:
+                print("[DEV] Skipping DB commit for code_change (development mode)")
+        
+        # Save new code to file
         with open(user_file_path, "w", encoding="utf-8", newline='') as f:
             f.write(code)
         
@@ -119,7 +162,8 @@ def save_code():
                 data=json.dumps({
                     "file_name": file_name,
                     "code_length": len(code),
-                    "lines_count": len(code_lines)
+                    "lines_count": len(code_lines),
+                    "used_ai_assistant_since_last_save": used_ai
                 })
             )
             # Only commit to DB if not in development mode
@@ -128,6 +172,9 @@ def save_code():
                 db.session.commit()
             else:
                 print("[DEV] Skipping DB commit for experiment_data (development mode)")
+        
+        # Update last_code_save timestamp in session
+        session['last_code_save'] = datetime.now().isoformat()
         
         return jsonify({"success": True})
     except Exception as e:
@@ -199,6 +246,23 @@ def LLMrequest():
         
         response = assistant.get_response(context, user_message, session_id, user_id)
         
+        # Save user message and LLM response to ExperimentData
+        if user_id:
+            db.session.add(ExperimentData(
+                session_id=session_id,
+                user_id=user_id,
+                user_action="llm_message",
+                timestamp=datetime.now(),
+                data=json.dumps({
+                    "user_message": user_message,
+                    "llm_response": getattr(response, 'output_text', str(response))
+                })
+            ))
+            db.session.commit()
+        
+        # Track last AI usage in session
+        session['last_ai_usage'] = datetime.now().isoformat()
+        
         response_segments = {}
         
         # Extract code between triple backticks if present
@@ -240,12 +304,72 @@ def LLMrequest():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
+@application.route("/save-final-game-code", methods=["POST"])
+def save_final_game_code():
+    """Save the user's final game.js script to the database at experiment completion."""
+    try:
+        session_id = session.get('session_id', 'unknown')
+        user_id = get_int_user_id()
+        if not user_id:
+            return jsonify({"success": False, "error": "No user_id in session"}), 400
+        user_file_path = os.path.join(application.static_folder, "js", "users", f"game_{session_id}.js")
+        if not os.path.exists(user_file_path):
+            return jsonify({"success": False, "error": "User game.js file not found"}), 404
+        with open(user_file_path, "r", encoding="utf-8") as f:
+            code = f.read()
+        experiment_data = ExperimentData(
+            session_id=session_id,
+            user_id=user_id,
+            user_action="final_code_save",
+            timestamp=datetime.now(),
+            data=json.dumps({
+                "file_name": f"game_{session_id}.js",
+                "final_code": code,
+                "code_length": len(code),
+                "lines_count": len(code.split('\n'))
+            })
+        )
+        if not is_development_mode():
+            db.session.add(experiment_data)
+            db.session.commit()
+        else:
+            print("[DEV] Skipping DB commit for final_code_save (development mode)")
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
 @application.route("/debrief", methods=["GET", "POST"])
 def debrief():
     # Track experiment completion
     session_id = session.get('session_id', 'unknown')
     user_id = get_int_user_id()
-    
+
+    # Save final game.js code to DB at experiment completion
+    if user_id:
+        try:
+            user_file_path = os.path.join(application.static_folder, "js", "users", f"game_{session_id}.js")
+            if os.path.exists(user_file_path):
+                with open(user_file_path, "r", encoding="utf-8") as f:
+                    code = f.read()
+                experiment_data = ExperimentData(
+                    session_id=session_id,
+                    user_id=user_id,
+                    user_action="final_code_save",
+                    timestamp=datetime.now(),
+                    data=json.dumps({
+                        "file_name": f"game_{session_id}.js",
+                        "final_code": code,
+                        "code_length": len(code),
+                        "lines_count": len(code.split('\n'))
+                    })
+                )
+                if not is_development_mode():
+                    db.session.add(experiment_data)
+                    db.session.commit()
+                else:
+                    print("[DEV] Skipping DB commit for final_code_save (development mode)")
+        except Exception as e:
+            print(f"[ERROR] Failed to save final game.js code: {e}")
     if user_id and request.method == "GET":
         # Log that user reached debrief (experiment completion)
         experiment_data = ExperimentData(
@@ -787,7 +911,27 @@ def tutorial():
 def start_experiment():
     return redirect(url_for('gameAIassistant'))
 
+@application.route('/log-task-check', methods=['POST'])
+def log_task_check():
+    try:
+        data = request.get_json()
+        task_id = data.get('task_id')
+        checked = bool(data.get('checked'))
+        user_id = session.get('user_id')
+        session_id = session.get('session_id', 'unknown')
+        if not user_id:
+            return jsonify({'success': False, 'error': 'No user_id in session'}), 400
+        task_check = TaskCheck(
+            user_id=user_id,
+            session_id=session_id,
+            task_id=task_id,
+            checked=checked
+        )
+        db.session.add(task_check)
+        db.session.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 if __name__ == "__main__":
-    #if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
-    #    webbrowser.open('http://127.0.0.1:5001')
     application.run(host='0.0.0.0', debug=False, port=5001)

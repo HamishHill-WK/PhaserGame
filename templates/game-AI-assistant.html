@@ -23,6 +23,12 @@
             max-width: 100vw;
         }
     }
+    .task-completed {
+        background: #e6ffe6 !important;
+        border-left: 6px solid #28a745 !important;
+        opacity: 0.85;
+        transition: background 0.2s, border 0.2s, opacity 0.2s;
+    }
     </style>
 </head>
 <body>   
@@ -166,6 +172,42 @@
         });
         document.getElementById('continue-experiment-btn').addEventListener('click', function() {
             document.getElementById('finish-confirm-modal').style.display = 'none';
+        });
+        
+        // Task check event logging
+        document.addEventListener('DOMContentLoaded', function() {
+            // Only run on experiment page
+            if (window.location.pathname.includes('gameAIassistant')) {
+                function logTaskCheck(taskId, checked) {
+                    fetch('/log-task-check', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ task_id: taskId, checked: checked })
+                    });
+                }
+                for (let i = 1; i <= 8; i++) {
+                    let cb = document.getElementById('task' + i);
+                    if (cb) {
+                        cb.addEventListener('change', function() {
+                            logTaskCheck('task' + i, cb.checked);
+                            // Change the appearance of the task when checked/unchecked
+                            let container = document.getElementById('task' + i + '-container');
+                            if (cb.checked) {
+                                container.classList.add('task-completed');
+                            } else {
+                                container.classList.remove('task-completed');
+                            }
+                        });
+                        // Set initial state on load
+                        let container = document.getElementById('task' + i + '-container');
+                        if (cb.checked) {
+                            container.classList.add('task-completed');
+                        } else {
+                            container.classList.remove('task-completed');
+                        }
+                    }
+                }
+            }
         });
         </script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
