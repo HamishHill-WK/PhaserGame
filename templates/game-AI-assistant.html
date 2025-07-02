@@ -5,18 +5,51 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.24.1/ace.js"></script>
     <style>
     /* ...existing styles... */
+    #game-section {
+        display: flex;
+        flex-direction: row;
+        align-items: flex-start;
+        gap: 32px;
+    }
     #debug-console-output {
         max-width: 480px;
         width: 100%;
         margin: 0 auto 0 0;
     }
-    #debug-console {
-        max-width: 480px;
-        width: 100%;
-        word-break: break-word;
-        white-space: pre-wrap;
-        overflow-x: auto;
-        box-sizing: border-box;
+    #static-asset-list {
+        min-width: 180px;
+        max-width: 220px;
+        background: #fafbfc;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        padding: 12px 10px 12px 10px;
+        margin-left: 0;
+        margin-top: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .static-asset-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 6px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    .static-asset-item:last-child {
+        border-bottom: none;
+    }
+    .static-asset-thumb {
+        width: 32px;
+        height: auto;
+        border-radius: 4px;
+        background: #fff;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+    }
+    .static-asset-label {
+        font-size: 0.98em;
+        color: #333;
+        word-break: break-all;
     }
     @media (max-width: 600px) {
         #debug-console-output, #debug-console {
@@ -35,14 +68,20 @@
     
     <div id="main-container">
         <div id="game-section">
-            <div id="game-container"></div>
-            <div class="controls">
-                <button id="restart-button">Restart Game</button>
-                <p>Use your mouse to control the paddle. Click to launch the ball.</p>
+            <div style="flex:1; min-width:0;">
+                <div id="game-container"></div>
+                <div class="controls">
+                    <button id="restart-button">Restart Game</button>
+                    <p>Use your mouse to control the paddle. Click to launch the ball.</p>
+                </div>
+                <div id="debug-console-output">
+                    <p>Debug Console Output:</p>
+                    <div id="debug-console"></div>
+                </div>
             </div>
-            <div id="debug-console-output">
-                <p>Debug Console Output:</p>
-                <div id="debug-console"></div>
+            <div id="static-asset-list">
+                <div style="font-weight:600; margin-bottom:8px; font-size:1.08em; color:#222;">Assets</div>
+                <div id="static-asset-list-items"></div>
             </div>
         </div>
           <div class="editor-container">
@@ -221,6 +260,24 @@
                         }
                     }
                 }
+            }
+        });
+        document.addEventListener('DOMContentLoaded', function() {
+            var assetList = [
+                'ball1.png','ball2.png','blue1.png','blue2.png','button.png','buttonOver.png','drop_ball.png','drop_life.png','drop_score.png','green1.png','green2.png','paddle1.png','paddle2.png','purple1.png','purple2.png','red1.png','red2.png','silver1.png','silver2.png','yellow1.png','yellow2.png'
+            ];
+            var staticAssetList = document.getElementById('static-asset-list-items');
+            if (staticAssetList) {
+                staticAssetList.innerHTML = '';
+                assetList.forEach(function(asset) {
+                    var div = document.createElement('div');
+                    div.className = 'static-asset-item';
+                    div.innerHTML = `
+                        <img src="/static/assets/breakout/${asset}" class="static-asset-thumb" alt="${asset}">
+                        <span class="static-asset-label">${asset}</span>
+                    `;
+                    staticAssetList.appendChild(div);
+                });
             }
         });
         </script>
