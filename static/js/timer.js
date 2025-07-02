@@ -108,15 +108,21 @@ document.addEventListener('DOMContentLoaded', function() {
     const isDevelopment = window.location.hostname === 'localhost' || 
                          window.location.hostname === '127.0.0.1' ||
                          window.location.search.includes('dev=true');
-    
-    if (document.getElementById('experiment-timer') && !isDevelopment) {
+    // Only start timer if not on the tutorial page
+    const isTutorial = window.location.pathname.includes('tutorial');
+    if (document.getElementById('experiment-timer') && !isDevelopment && !isTutorial) {
         window.experimentTimer = new ExperimentTimer();
     } else if (isDevelopment) {
-        console.log('Timer disabled for development');
         // Hide timer display in dev mode
         const timerElement = document.getElementById('experiment-timer');
         if (timerElement) {
             timerElement.style.display = 'none';
+        }
+    } else if (isTutorial) {
+        // Show timer but do not start countdown; set to 60:00
+        const timerText = document.getElementById('timer-text');
+        if (timerText) {
+            timerText.textContent = '60:00';
         }
     }
 });

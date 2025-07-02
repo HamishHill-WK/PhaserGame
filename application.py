@@ -592,6 +592,7 @@ def init_database():
     """Initialize database tables - REMOVE THIS ROUTE AFTER USE"""
     try:
         print("Creating database tables...")
+        db.drop_all()  # Drop existing tables first
         db.create_all()
         print("Database tables created successfully!")
         return """
