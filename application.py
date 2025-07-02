@@ -1,14 +1,22 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session
 import os 
-import webbrowser
 import json
 from datetime import datetime
 import assistant
 import secval
 import uuid
-from data import db, Survey, ExperimentData, User, configure_database, is_development_mode
+from data import db, Survey, ExperimentData, User, configure_database, is_development_mode, TaskCheck
 from dotenv import load_dotenv 
-
+import random
+import difflib
+from dateutil.parser import isoparse
+import traceback
+from sqlalchemy import inspect
+import psycopg2
+from urllib.parse import urlparse
+import traceback
+import subprocess
+import socket
 load_dotenv()
 
 validator = secval.SimpleSecurityValidator()
@@ -35,8 +43,17 @@ def gameAIassistant():
     session_id = session.get('session_id')
     if not session_id:
         session['session_id'] = f"session_{uuid.uuid4().hex[:12]}"
-    
-    return render_template('game-AI-assistant.html')
+    # Get assigned_condition from session or user
+    assigned_condition = session.get('assigned_condition')
+    if not assigned_condition:
+        user_id = session.get('user_id')
+        assigned_condition = None
+        if user_id:
+            user = User.query.get(user_id)
+            if user and hasattr(user, 'assigned_condition'):
+                assigned_condition = user.assigned_condition
+                session['assigned_condition'] = assigned_condition
+    return render_template('game-AI-assistant.html', assigned_condition=assigned_condition)
 
 @application.route("/")
 @application.route("/index")
@@ -44,8 +61,43 @@ def index():
     # Generate session ID for user tracking across all pages
     if 'session_id' not in session:
         session['session_id'] = f"session_{uuid.uuid4().hex[:12]}"
-    
-    return render_template('index.html')
+    # Generate participant code if not present, but do NOT create user in DB here
+    participant_code = None
+    if 'participant_code' not in session:
+        participant_code_val = f"P{uuid.uuid4().hex[:8].upper()}"
+        session['participant_code'] = participant_code_val
+        participant_code = participant_code_val
+    else:
+        participant_code = session['participant_code']
+    return render_template('index.html', participant_code=participant_code)
+
+def assign_balanced_condition():
+    """
+    Assign participant to AI or Control condition based on current balance.
+    Returns: 'ai' or 'control'
+    """
+    try:
+        # Count current assignments
+        ai_count = User.query.filter_by(assigned_condition='ai', consent_participate=True).count()
+        control_count = User.query.filter_by(assigned_condition='control', consent_participate=True).count()
+        total_count = ai_count + control_count
+        print(f"Current balance - AI: {ai_count}, Control: {control_count}")
+        # If no participants yet, assign first to 'ai'
+        if total_count == 0:
+            assigned_condition = 'ai'
+        elif ai_count < control_count:
+            assigned_condition = 'ai'
+        elif control_count < ai_count:
+            assigned_condition = 'control'
+        else:
+            # Equal numbers - randomly assign
+            assigned_condition = random.choice(['ai', 'control'])
+        print(f"Assigned condition: {assigned_condition}")
+        return assigned_condition
+    except Exception as e:
+        print(f"Error in condition assignment: {e}")
+        # Fallback to random assignment
+        return random.choice(['ai', 'control'])
 
 # Add the survey route
 @application.route("/opensurvey", methods=["GET", "POST"])
@@ -106,6 +158,47 @@ def save_code():
         user_file_path = os.path.join(application.static_folder, "js", "users", f"game_{session_id}.js")
         os.makedirs(os.path.dirname(user_file_path), exist_ok=True)
         
+        # --- Compute code diff for logging ---
+        prev_code = ""
+        if os.path.exists(user_file_path):
+            with open(user_file_path, "r", encoding="utf-8") as f:
+                prev_code = f.read()
+        prev_lines = prev_code.split('\n') if prev_code else []
+        diff = list(difflib.unified_diff(prev_lines, code_lines, lineterm=''))
+        # --- Check if AI assistant was used since last save ---
+        last_ai_usage = session.get('last_ai_usage')
+        last_code_save = session.get('last_code_save')
+        used_ai = False
+        if last_ai_usage:
+            try:
+                ai_time = isoparse(last_ai_usage)
+                if last_code_save:
+                    save_time = isoparse(last_code_save)
+                    used_ai = ai_time > save_time
+                else:
+                    used_ai = True  # No previous save, but AI was used
+            except Exception:
+                used_ai = False
+        # Only log if there are changes
+        if user_id and diff:
+            experiment_data = ExperimentData(
+                session_id=session_id,
+                user_id=user_id,
+                user_action="code_change",
+                timestamp=datetime.now(),
+                data=json.dumps({
+                    "file_name": file_name,
+                    "diff": diff,
+                    "used_ai_assistant_since_last_save": used_ai
+                })
+            )
+            if not is_development_mode():
+                db.session.add(experiment_data)
+                db.session.commit()
+            else:
+                print("[DEV] Skipping DB commit for code_change (development mode)")
+        
+        # Save new code to file
         with open(user_file_path, "w", encoding="utf-8", newline='') as f:
             f.write(code)
         
@@ -119,7 +212,8 @@ def save_code():
                 data=json.dumps({
                     "file_name": file_name,
                     "code_length": len(code),
-                    "lines_count": len(code_lines)
+                    "lines_count": len(code_lines),
+                    "used_ai_assistant_since_last_save": used_ai
                 })
             )
             # Only commit to DB if not in development mode
@@ -128,6 +222,9 @@ def save_code():
                 db.session.commit()
             else:
                 print("[DEV] Skipping DB commit for experiment_data (development mode)")
+        
+        # Update last_code_save timestamp in session
+        session['last_code_save'] = datetime.now().isoformat()
         
         return jsonify({"success": True})
     except Exception as e:
@@ -199,6 +296,23 @@ def LLMrequest():
         
         response = assistant.get_response(context, user_message, session_id, user_id)
         
+        # Save user message and LLM response to ExperimentData
+        if user_id:
+            db.session.add(ExperimentData(
+                session_id=session_id,
+                user_id=user_id,
+                user_action="llm_message",
+                timestamp=datetime.now(),
+                data=json.dumps({
+                    "user_message": user_message,
+                    "llm_response": getattr(response, 'output_text', str(response))
+                })
+            ))
+            db.session.commit()
+        
+        # Track last AI usage in session
+        session['last_ai_usage'] = datetime.now().isoformat()
+        
         response_segments = {}
         
         # Extract code between triple backticks if present
@@ -240,12 +354,72 @@ def LLMrequest():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
+@application.route("/save-final-game-code", methods=["POST"])
+def save_final_game_code():
+    """Save the user's final game.js script to the database at experiment completion."""
+    try:
+        session_id = session.get('session_id', 'unknown')
+        user_id = get_int_user_id()
+        if not user_id:
+            return jsonify({"success": False, "error": "No user_id in session"}), 400
+        user_file_path = os.path.join(application.static_folder, "js", "users", f"game_{session_id}.js")
+        if not os.path.exists(user_file_path):
+            return jsonify({"success": False, "error": "User game.js file not found"}), 404
+        with open(user_file_path, "r", encoding="utf-8") as f:
+            code = f.read()
+        experiment_data = ExperimentData(
+            session_id=session_id,
+            user_id=user_id,
+            user_action="final_code_save",
+            timestamp=datetime.now(),
+            data=json.dumps({
+                "file_name": f"game_{session_id}.js",
+                "final_code": code,
+                "code_length": len(code),
+                "lines_count": len(code.split('\n'))
+            })
+        )
+        if not is_development_mode():
+            db.session.add(experiment_data)
+            db.session.commit()
+        else:
+            print("[DEV] Skipping DB commit for final_code_save (development mode)")
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
 @application.route("/debrief", methods=["GET", "POST"])
 def debrief():
     # Track experiment completion
     session_id = session.get('session_id', 'unknown')
     user_id = get_int_user_id()
-    
+
+    # Save final game.js code to DB at experiment completion
+    if user_id:
+        try:
+            user_file_path = os.path.join(application.static_folder, "js", "users", f"game_{session_id}.js")
+            if os.path.exists(user_file_path):
+                with open(user_file_path, "r", encoding="utf-8") as f:
+                    code = f.read()
+                experiment_data = ExperimentData(
+                    session_id=session_id,
+                    user_id=user_id,
+                    user_action="final_code_save",
+                    timestamp=datetime.now(),
+                    data=json.dumps({
+                        "file_name": f"game_{session_id}.js",
+                        "final_code": code,
+                        "code_length": len(code),
+                        "lines_count": len(code.split('\n'))
+                    })
+                )
+                if not is_development_mode():
+                    db.session.add(experiment_data)
+                    db.session.commit()
+                else:
+                    print("[DEV] Skipping DB commit for final_code_save (development mode)")
+        except Exception as e:
+            print(f"[ERROR] Failed to save final game.js code: {e}")
     if user_id and request.method == "GET":
         # Log that user reached debrief (experiment completion)
         experiment_data = ExperimentData(
@@ -264,8 +438,16 @@ def debrief():
             db.session.commit()
         else:
             print("[DEV] Skipping DB commit for experiment_data (development mode)")
-    
-    return render_template('debrief.html')
+    # Show participant code if available
+    participant_code = None
+    # Always try to get from session first
+    participant_code = session.get('participant_code')
+    # If not in session, try to get from user in DB
+    if not participant_code and user_id:
+        user = User.query.get(user_id)
+        if user:
+            participant_code = user.participant_code
+    return render_template('debrief.html', participant_code=participant_code)
 
 @application.route("/clear-session", methods=["POST"])
 def clear_session():
@@ -368,7 +550,7 @@ def get_session_id():
 
 @application.route("/log-consent", methods=["POST"])
 def log_consent():
-    """Log consent decision with session tracking"""
+    """Log consent decision with session tracking and create user in DB here"""
     try:
         print("Logging consent...")
         session_id = session.get('session_id', 'unknown')
@@ -380,11 +562,16 @@ def log_consent():
             consent_data = True
         user_name = request.form.get('signature', '')
         signed_date_form = request.form.get('date', datetime.now().isoformat())
+        # Use participant_code from session if available
+        participant_code_val = session.get('participant_code')
+        if not participant_code_val:
+            participant_code_val = f"P{uuid.uuid4().hex[:8].upper()}"
+            session['participant_code'] = participant_code_val
         anonymous_user = User(
             signed=user_name,
             consent_data=consent_data,
             consent_participate=consent_participate,
-            participant_code=f"P{uuid.uuid4().hex[:8].upper()}",  # Anonymous participant code
+            participant_code=participant_code_val,  # Use session participant code
             signed_date=signed_date_form
         )
         # Only commit to DB if not in development mode
@@ -400,20 +587,12 @@ def log_consent():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
-# Database initialization function
-def init_db():
-    """Initialize database tables"""
-    with application.app_context():
-        db.create_all()
-        print("Database tables created successfully!")
-
-# Add these routes to your application.py
-
 @application.route("/init-db")
 def init_database():
     """Initialize database tables - REMOVE THIS ROUTE AFTER USE"""
     try:
         print("Creating database tables...")
+        db.drop_all()  # Drop existing tables first
         db.create_all()
         print("Database tables created successfully!")
         return """
@@ -428,7 +607,6 @@ def init_database():
         """
     except Exception as e:
         print(f"Error creating database tables: {str(e)}")
-        import traceback
         traceback.print_exc()
         return f"""
         <html>
@@ -448,7 +626,6 @@ def test_database():
         result = db.session.execute('SELECT 1')
         
         # Test if tables exist
-        from sqlalchemy import inspect
         inspector = inspect(db.engine)
         tables = inspector.get_table_names()
         
@@ -464,69 +641,11 @@ def test_database():
             "error": str(e)
         }), 500
 
-# Add these debug routes to your application.py
-
-@application.route("/debug-env")
-def debug_environment():
-    """Debug environment variables - REMOVE AFTER DEBUGGING"""
-    try:
-        db_vars = {}
-        env_vars_to_check = [
-            'RDS_HOSTNAME', 'RDS_PORT', 'RDS_DB_NAME', 
-            'RDS_USERNAME', 'RDS_PASSWORD', 'DATABASE_URL',
-            'EXPERIMENT_DATA_LINK', 'SQLALCHEMY_DATABASE_URI'
-        ]
-        
-        for var in env_vars_to_check:
-            value = os.environ.get(var)
-            if value:
-                if 'PASSWORD' in var or 'URI' in var:
-                    # Mask sensitive data but show if it exists
-                    db_vars[var] = f"SET (length: {len(value)})"
-                else:
-                    db_vars[var] = value
-            else:
-                db_vars[var] = "NOT SET"
-        
-        # Check application config
-        app_config = {}
-        if hasattr(application, 'config'):
-            uri = application.config.get('SQLALCHEMY_DATABASE_URI')
-            if uri:
-                app_config['SQLALCHEMY_DATABASE_URI'] = f"SET (length: {len(uri)})"
-            else:
-                app_config['SQLALCHEMY_DATABASE_URI'] = "NOT SET"
-        
-        return f"""
-        <html>
-        <head><title>Environment Debug</title></head>
-        <body>
-            <h1>Environment Variables</h1>
-            <h2>Database Environment Variables:</h2>
-            <ul>
-                {''.join([f'<li><strong>{k}:</strong> {v}</li>' for k, v in db_vars.items()])}
-            </ul>
-            
-            <h2>Application Config:</h2>
-            <ul>
-                {''.join([f'<li><strong>{k}:</strong> {v}</li>' for k, v in app_config.items()])}
-            </ul>
-            
-            <br>
-            <a href="/test-basic-connection">Test Basic Connection</a>
-        </body>
-        </html>
-        """
-    except Exception as e:
-        return f"Error: {str(e)}", 500
-
 @application.route("/test-basic-connection")
 def test_basic_connection():
     """Test the most basic database connection"""
     try:
-        import psycopg2
-        from urllib.parse import urlparse
-        
+
         # Get the database URI
         uri = application.config.get('SQLALCHEMY_DATABASE_URI')
         if not uri:
@@ -584,7 +703,6 @@ def test_basic_connection():
         """
         
     except Exception as e:
-        import traceback
         error_details = traceback.format_exc()
         
         return f"""
@@ -607,178 +725,6 @@ def test_basic_connection():
         </html>
         """, 500
 
-@application.route("/init-db-safe")
-def init_database_safe():
-    """Initialize database with better error handling"""
-    try:
-        # Test connection first
-        db.session.execute('SELECT 1')
-        print("Database connection test passed")
-        
-        # Create tables
-        db.create_all()
-        print("Database tables created")
-        
-        # Verify tables were created
-        from sqlalchemy import inspect
-        inspector = inspect(db.engine)
-        tables = inspector.get_table_names()
-        
-        return f"""
-        <html>
-        <head><title>Database Initialized</title></head>
-        <body>
-            <h1>Database Initialized Successfully!</h1>
-            <h2>Created Tables:</h2>
-            <ul>
-                {''.join([f'<li>{table}</li>' for table in tables])}
-            </ul>
-            <p>Total tables: {len(tables)}</p>
-            
-            <br>
-            <a href="/">Go to main site</a>
-        </body>
-        </html>
-        """
-        
-    except Exception as e:
-        import traceback
-        error_details = traceback.format_exc()
-        
-        return f"""
-        <html>
-        <head><title>Database Init Failed</title></head>
-        <body>
-            <h1>Database Initialization Failed</h1>
-            <h2>Error:</h2>
-            <p>{str(e)}</p>
-            <h2>Full Error Details:</h2>
-            <pre>{error_details}</pre>
-        </body>
-        </html>
-        """, 500
-
-@application.route("/health-check")
-def health_check():
-    """Simple health check that shows if data exists"""
-    try:
-        user_count = User.query.count()
-        survey_count = Survey.query.count()
-        experiment_count = ExperimentData.query.count()
-        
-        # Get latest entries
-        latest_user = User.query.order_by(User.signed_date.desc()).first()
-        latest_survey = Survey.query.order_by(Survey.submitted_at.desc()).first()
-        latest_experiment = ExperimentData.query.order_by(ExperimentData.timestamp.desc()).first()
-        
-        return jsonify({
-            "status": "healthy",
-            "database_connected": True,
-            "counts": {
-                "users": user_count,
-                "surveys": survey_count,
-                "experiments": experiment_count,
-                "total": user_count + survey_count + experiment_count
-            },
-            "latest_activity": {
-                "latest_user": latest_user.signed_date.isoformat() if latest_user else None,
-                "latest_survey": latest_survey.submitted_at.isoformat() if latest_survey else None,
-                "latest_experiment": latest_experiment.timestamp.isoformat() if latest_experiment else None
-            },
-            "has_data": (user_count + survey_count + experiment_count) > 0
-        })
-        
-    except Exception as e:
-        return jsonify({
-            "status": "error",
-            "database_connected": False,
-            "error": str(e)
-        }), 500
-        
-@application.route("/debug-network")
-def debug_network():
-    """Debug network connectivity to RDS"""
-    import subprocess
-    import socket
-    
-    try:
-        db_host = "experiment-database.c7agayyc2qqp.eu-west-2.rds.amazonaws.com"
-        db_port = 5432
-        
-        results = []
-        
-        # Test 1: Basic socket connection
-        try:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(5)
-            result = sock.connect_ex((db_host, db_port))
-            sock.close()
-            
-            if result == 0:
-                results.append("Socket connection: SUCCESS")
-            else:
-                results.append(f"Socket connection: FAILED (error code: {result})")
-        except Exception as e:
-            results.append(f"Socket connection: ERROR - {str(e)}")
-        
-        # Test 2: DNS resolution
-        try:
-            import socket
-            ip = socket.gethostbyname(db_host)
-            results.append(f"DNS resolution: {db_host} → {ip}")
-        except Exception as e:
-            results.append(f"DNS resolution: FAILED - {str(e)}")
-        
-        # Test 3: Ping test (if available)
-        try:
-            ping_result = subprocess.run(['ping', '-c', '1', '-W', '3', db_host], 
-                                       capture_output=True, text=True, timeout=10)
-            if ping_result.returncode == 0:
-                results.append("Ping: SUCCESS")
-            else:
-                results.append("Ping: FAILED")
-        except Exception as e:
-            results.append(f"Ping: Not available - {str(e)}")
-        
-        # Test 4: Telnet-like test
-        try:
-            import telnetlib
-            tn = telnetlib.Telnet()
-            tn.open(db_host, db_port, timeout=5)
-            tn.close()
-            results.append("Telnet test: SUCCESS")
-        except Exception as e:
-            results.append(f"Telnet test: FAILED - {str(e)}")
-        
-        return f"""
-        <html>
-        <head><title>Network Debug</title></head>
-        <body>
-            <h1>Network Connectivity Test</h1>
-            <h2>Target: {db_host}:{db_port}</h2>
-            
-            <h3>Test Results:</h3>
-            <ul>
-                {''.join([f'<li>{result}</li>' for result in results])}
-            </ul>
-            
-            <h3>If All Tests Fail:</h3>
-            <ul>
-                <li>EB and RDS are in different VPCs</li>
-                <li>RDS is in private subnets with no route to EB</li>
-                <li>Network ACLs are blocking traffic</li>
-                <li>RDS subnet routing is incorrect</li>
-            </ul>
-            
-            <h3>Quick Solution:</h3>
-            <p><a href="/use-external-db">Set up external database</a></p>
-        </body>
-        </html>
-        """
-        
-    except Exception as e:
-        return f"Debug error: {str(e)}", 500
-
 @application.route("/tutorial")
 def tutorial():
     return render_template('tutorial.html')
@@ -787,7 +733,53 @@ def tutorial():
 def start_experiment():
     return redirect(url_for('gameAIassistant'))
 
+@application.route('/log-task-check', methods=['POST'])
+def log_task_check():
+    try:
+        data = request.get_json()
+        task_id = data.get('task_id')
+        checked = bool(data.get('checked'))
+        user_id = session.get('user_id')
+        session_id = session.get('session_id', 'unknown')
+        if not user_id:
+            return jsonify({'success': False, 'error': 'No user_id in session'}), 400
+        task_check = TaskCheck(
+            user_id=user_id,
+            session_id=session_id,
+            task_id=task_id,
+            checked=checked
+        )
+        db.session.add(task_check)
+        db.session.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@application.route("/log-game-reload", methods=["POST"])
+def log_game_reload():
+    """Log when the user reloads the game window."""
+    try:
+        session_id = session.get('session_id', 'unknown')
+        user_id = get_int_user_id()
+        timestamp = datetime.now()
+        db_entry = ExperimentData(
+            session_id=session_id,
+            user_id=user_id,
+            user_action="game_reload",
+            timestamp=timestamp,
+            data=json.dumps({
+                "message": "Game window reloaded",
+                "timestamp": timestamp.isoformat()
+            })
+        )
+        if not is_development_mode():
+            db.session.add(db_entry)
+            db.session.commit()
+        else:
+            print("[DEV] Skipping DB commit for game_reload (development mode)")
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
 if __name__ == "__main__":
-    #if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
-    #    webbrowser.open('http://127.0.0.1:5001')
     application.run(host='0.0.0.0', debug=False, port=5001)

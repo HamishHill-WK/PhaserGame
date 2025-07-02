@@ -51,11 +51,13 @@ def configure_database(application):
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    signed = db.Column(db.String(80), unique=True, nullable=False)
+    signed = db.Column(db.String(80), unique=False, nullable=False)
     signed_date = db.Column(db.DateTime, default=datetime.utcnow)
     consent_data = db.Column(db.Boolean, nullable=False)  
     consent_participate = db.Column(db.Boolean, default=False)  # User consent to participate in the study
     participant_code = db.Column(db.String(80), unique=True, nullable=False) #shown to the user so they can request their data is removed
+    
+    assigned_condition = db.Column(db.String(20), nullable=True)  # 'ai' or 'control'
 
     data_deletion_requested = db.Column(db.Boolean, default=False)
     data_deletion_date = db.Column(db.DateTime, nullable=True)
@@ -119,4 +121,12 @@ class CodeChange(db.Model):
     
     errors_before = db.Column(db.Integer, nullable=False)
     errors_after = db.Column(db.Integer, nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+class TaskCheck(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    session_id = db.Column(db.String(100), nullable=False)
+    task_id = db.Column(db.String(50), nullable=False)  # e.g., 'task1', 'task2', etc.
+    checked = db.Column(db.Boolean, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)

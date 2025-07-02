@@ -45,7 +45,7 @@
                     </div>
                 </div>
                 <div class="dropdown-container">
-                    <button class="dropdown-btn" onclick="toggleDropdown()">Tasks ▼</button>
+                    <button class="dropdown-btn" id="tutorial-dropdown-btn" onclick="toggleDropdown()">Tasks ▼</button>
                     <div id="dropdown-content" class="dropdown-content">                        <div class="dropdown-content-container" id="task1-container">
                             <label class="checkbox-item">
                                 <input type="checkbox" id="task1" disabled> Example Task 1
@@ -87,7 +87,7 @@
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="{{ url_for('static', filename='js/error-handler.js') }}"></script>
+    <!-- <script src="{{ url_for('static', filename='js/error-handler.js') }}"></script> -->
     <script src="{{ url_for('static', filename='js/timer.js') }}"></script>
     <!-- <script src="{{ url_for('static', filename='js/game.js') }}"></script> -->
     <script src="{{ url_for('static', filename='js/secure-executor.js') }}"></script>
@@ -158,6 +158,21 @@
             }
         }, 200);
     });
+    // Make the dropdown interactable in the tutorial
+    function toggleDropdown() {
+        var dropdown = document.getElementById('dropdown-content');
+        if (dropdown.style.display === 'block') {
+            dropdown.style.display = 'none';
+        } else {
+            dropdown.style.display = 'block';
+        }
+    }
+    // Automatically open the dropdown when the tutorial hint is displayed
+    window.openTaskDropdownHint = function() {
+        var dropdown = document.getElementById('dropdown-content');
+        if (dropdown) dropdown.style.display = 'block';
+    };
+    // Example: call window.openTaskDropdownHint() from your tutorial guide script when the hint is shown
     </script>
 </body>
 </html>

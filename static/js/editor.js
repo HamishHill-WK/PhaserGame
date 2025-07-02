@@ -55,6 +55,14 @@ document.addEventListener('DOMContentLoaded', function() {
     });
       // Handle reload button click
     document.getElementById('reload-game').addEventListener('click', function() {
+        // Log game reload to backend
+        fetch('/log-game-reload', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({})
+        });
         reloadGame();
     });
 });

@@ -14,6 +14,10 @@
     </div>
 
     <div class="consent-container">
+            <div class="participant-code-banner" style="background:#f8f8e0; border:1px solid #ccc; padding:10px; margin-bottom:15px; font-size:1.1em;">
+                <strong>Your Participant Code:</strong> <span style="font-family:monospace;">{{ participant_code }}</span><br>
+                <span style="font-size:0.95em;">Please make a note of this in case you have any questions or wish to request data removal.</span>
+            </div>        
         <div class="project-info">
             <strong>Project title:</strong> Game Mechanic Implementation With Natural Language Assistance<br>
             <strong>Researcher name:</strong> Hamish Hill<br>
@@ -127,39 +131,6 @@
         </div>
     </div>
     
-    <script>
-        function toggleSubmit() {
-            const consentYes = document.getElementById('consent-yes').checked;
-            const dataYes = document.getElementById('data-yes').checked;
-            const button = document.getElementById('agree-btn');
-            
-            // Enable button only if both consent questions are answered with "yes"
-            button.disabled = !(consentYes && dataYes);
-        }
-
-        document.getElementById('agree-btn').addEventListener('click', function(event) {
-            let consentYes = false;
-            let dataYes = false;
-            if (document.getElementById('consent-yes').checked){
-                consentYes = true;
-            }
-            if (document.getElementById('data-yes').checked){
-                dataYes = true;
-            }
-            
-            if (!consentYes || !dataYes) {
-                event.preventDefault();
-                alert('You must consent to both participation and data collection to proceed with the study.');
-            } 
-        });
-        
-        // Set today's date as default
-        document.addEventListener('DOMContentLoaded', function() {
-            const dateField = document.getElementById('date');
-            const today = new Date();
-            const formattedDate = today.toISOString().split('T')[0];
-            dateField.value = formattedDate;
-        });
-    </script>
+    <script src="{{ url_for('static', filename='js/consent.js') }}"></script>
 </body>
 </html>

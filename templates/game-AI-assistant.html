@@ -5,23 +5,62 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.24.1/ace.js"></script>
     <style>
     /* ...existing styles... */
+    #game-section {
+        display: flex;
+        flex-direction: row;
+        align-items: flex-start;
+        gap: 32px;
+    }
     #debug-console-output {
         max-width: 480px;
         width: 100%;
         margin: 0 auto 0 0;
     }
-    #debug-console {
-        max-width: 480px;
-        width: 100%;
-        word-break: break-word;
-        white-space: pre-wrap;
-        overflow-x: auto;
-        box-sizing: border-box;
+    #static-asset-list {
+        min-width: 180px;
+        max-width: 220px;
+        background: #fafbfc;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        padding: 12px 10px 12px 10px;
+        margin-left: 0;
+        margin-top: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .static-asset-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 6px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    .static-asset-item:last-child {
+        border-bottom: none;
+    }
+    .static-asset-thumb {
+        width: 32px;
+        height: auto;
+        border-radius: 4px;
+        background: #fff;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+    }
+    .static-asset-label {
+        font-size: 0.98em;
+        color: #333;
+        word-break: break-all;
     }
     @media (max-width: 600px) {
         #debug-console-output, #debug-console {
             max-width: 100vw;
         }
+    }
+    .task-completed {
+        background: #e6ffe6 !important;
+        border-left: 6px solid #28a745 !important;
+        opacity: 0.85;
+        transition: background 0.2s, border 0.2s, opacity 0.2s;
     }
     </style>
 </head>
@@ -29,14 +68,20 @@
     
     <div id="main-container">
         <div id="game-section">
-            <div id="game-container"></div>
-            <div class="controls">
-                <button id="restart-button">Restart Game</button>
-                <p>Use your mouse to control the paddle. Click to launch the ball.</p>
+            <div style="flex:1; min-width:0;">
+                <div id="game-container"></div>
+                <div class="controls">
+                    <button id="restart-button">Restart Game</button>
+                    <p>Use your mouse to control the paddle. Click to launch the ball.</p>
+                </div>
+                <div id="debug-console-output">
+                    <p>Debug Console Output:</p>
+                    <div id="debug-console"></div>
+                </div>
             </div>
-            <div id="debug-console-output">
-                <p>Debug Console Output:</p>
-                <div id="debug-console"></div>
+            <div id="static-asset-list">
+                <div style="font-weight:600; margin-bottom:8px; font-size:1.08em; color:#222;">Assets</div>
+                <div id="static-asset-list-items"></div>
             </div>
         </div>
           <div class="editor-container">
@@ -142,10 +187,24 @@
                 <button id="proceed-debrief-btn" class="tab-button">Proceed to Debrief</button>
                 <button id="continue-experiment-btn" class="tab-button">Continue Experiment</button>
             </div>
-        </div>
-    
+        </div>   
         <script>
-        // Helper to check if all tasks are complete
+        window.assigned_condition = "{{ assigned_condition|default('ai') }}";
+
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.assigned_condition === "control") {
+                // Hide AI chat (console-container)
+                document.getElementById('console-container').style.display = 'none';
+                // Show code editor tab content
+                document.getElementById('editor').classList.remove('hidden');
+                // Hide tabs for switching
+                document.getElementById('tabs').style.display = 'none';
+                // Set code editor as default
+                document.getElementById('editor').classList.remove('hidden');
+                document.getElementById('console-container').classList.add('hidden');
+            }
+        });
+
         function allTasksComplete() {
             for (let i = 1; i <= 8; i++) {
                 if (!document.getElementById('task' + i).checked) {
@@ -167,16 +226,63 @@
         document.getElementById('continue-experiment-btn').addEventListener('click', function() {
             document.getElementById('finish-confirm-modal').style.display = 'none';
         });
+        
+        // Task check event logging
+        document.addEventListener('DOMContentLoaded', function() {
+            // Only run on experiment page
+            if (window.location.pathname.includes('gameAIassistant')) {
+                function logTaskCheck(taskId, checked) {
+                    fetch('/log-task-check', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ task_id: taskId, checked: checked })
+                    });
+                }
+                for (let i = 1; i <= 8; i++) {
+                    let cb = document.getElementById('task' + i);
+                    if (cb) {
+                        cb.addEventListener('change', function() {
+                            logTaskCheck('task' + i, cb.checked);
+                            // Change the appearance of the task when checked/unchecked
+                            let container = document.getElementById('task' + i + '-container');
+                            if (cb.checked) {
+                                container.classList.add('task-completed');
+                            } else {
+                                container.classList.remove('task-completed');
+                            }
+                        });
+                        // Set initial state on load
+                        let container = document.getElementById('task' + i + '-container');
+                        if (cb.checked) {
+                            container.classList.add('task-completed');
+                        } else {
+                            container.classList.remove('task-completed');
+                        }
+                    }
+                }
+            }
+        });
+        document.addEventListener('DOMContentLoaded', function() {
+            var assetList = [
+                'ball1.png','ball2.png','blue1.png','blue2.png','button.png','buttonOver.png','drop_ball.png','drop_life.png','drop_score.png','green1.png','green2.png','paddle1.png','paddle2.png','purple1.png','purple2.png','red1.png','red2.png','silver1.png','silver2.png','yellow1.png','yellow2.png'
+            ];
+            var staticAssetList = document.getElementById('static-asset-list-items');
+            if (staticAssetList) {
+                staticAssetList.innerHTML = '';
+                assetList.forEach(function(asset) {
+                    var div = document.createElement('div');
+                    div.className = 'static-asset-item';
+                    div.innerHTML = `
+                        <img src="/static/assets/breakout/${asset}" class="static-asset-thumb" alt="${asset}">
+                        <span class="static-asset-label">${asset}</span>
+                    `;
+                    staticAssetList.appendChild(div);
+                });
+            }
+        });
         </script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/aistyle.css') }}">
-    <script type="module">
-       // import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
-
-        //const supabaseUrl = 'https://svfxmonmxhfnksfozzdp.supabase.co'
-        //const supabaseKey = 'your-anon-key-here' // Replace with your actual anon key
-        //const supabaseClient = createClient(supabaseUrl, supabaseKey) 
-    </script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="{{ url_for('static', filename='js/error-handler.js') }}"></script>
     <script src="{{ url_for('static', filename='js/timer.js') }}"></script>
