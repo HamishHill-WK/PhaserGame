@@ -7,7 +7,6 @@ import secval
 import uuid
 from data import db, Survey, ExperimentData, User, configure_database, is_development_mode, TaskCheck
 from dotenv import load_dotenv 
-import random
 import difflib
 from dateutil.parser import isoparse
 import traceback
@@ -15,8 +14,7 @@ from sqlalchemy import inspect
 import psycopg2
 from urllib.parse import urlparse
 import traceback
-import subprocess
-import socket
+from application_helper import is_development_mode, assign_balanced_condition, get_int_user_id, categorize_expertise_from_existing_survey
 load_dotenv()
 
 validator = secval.SimpleSecurityValidator()
@@ -30,10 +28,6 @@ try:
     print("Database configured successfully!")
 except Exception as e:
     print(f"Error configuring database: {e}")
-
-def is_development_mode():
-    """Return True if FLASK_ENV is set to 'development'."""
-    return os.environ.get('FLASK_ENV', '').lower() == 'development'
 
 errors = []
 
@@ -71,34 +65,6 @@ def index():
         participant_code = session['participant_code']
     return render_template('index.html', participant_code=participant_code)
 
-def assign_balanced_condition():
-    """
-    Assign participant to AI or Control condition based on current balance.
-    Returns: 'ai' or 'control'
-    """
-    try:
-        # Count current assignments
-        ai_count = User.query.filter_by(assigned_condition='ai', consent_participate=True).count()
-        control_count = User.query.filter_by(assigned_condition='control', consent_participate=True).count()
-        total_count = ai_count + control_count
-        print(f"Current balance - AI: {ai_count}, Control: {control_count}")
-        # If no participants yet, assign first to 'ai'
-        if total_count == 0:
-            assigned_condition = 'ai'
-        elif ai_count < control_count:
-            assigned_condition = 'ai'
-        elif control_count < ai_count:
-            assigned_condition = 'control'
-        else:
-            # Equal numbers - randomly assign
-            assigned_condition = random.choice(['ai', 'control'])
-        print(f"Assigned condition: {assigned_condition}")
-        return assigned_condition
-    except Exception as e:
-        print(f"Error in condition assignment: {e}")
-        # Fallback to random assignment
-        return random.choice(['ai', 'control'])
-
 # Add the survey route
 @application.route("/opensurvey", methods=["GET", "POST"])
 def opensurvey():
@@ -120,22 +86,13 @@ def survey():
     
     return render_template('survey.html', session_id=session_id)
 
-def get_int_user_id():
-    user_id = session.get('user_id')
-    if user_id is None:
-        return None
-    try:
-        return int(user_id)
-    except (ValueError, TypeError):
-        return None
-
 @application.route("/save-code", methods=["POST"])
 def save_code():
     try:
         data = request.get_json()
         code = data.get("code")
         session_id = session.get('session_id', 'unknown')
-        user_id = get_int_user_id()
+        user_id = get_int_user_id(session)
         
         # Should be:
         validation_result = validator.validate(code)
@@ -238,7 +195,7 @@ def log_error():
         
         # Get session ID and user ID for tracking
         session_id = session.get('session_id', 'unknown')
-        user_id = get_int_user_id()
+        user_id = get_int_user_id(session)
 
         # Generate a unique error code
         error_id = f"ERR-{uuid.uuid4().hex[:8]}"
@@ -359,7 +316,7 @@ def save_final_game_code():
     """Save the user's final game.js script to the database at experiment completion."""
     try:
         session_id = session.get('session_id', 'unknown')
-        user_id = get_int_user_id()
+        user_id = get_int_user_id(session)
         if not user_id:
             return jsonify({"success": False, "error": "No user_id in session"}), 400
         user_file_path = os.path.join(application.static_folder, "js", "users", f"game_{session_id}.js")
@@ -392,7 +349,7 @@ def save_final_game_code():
 def debrief():
     # Track experiment completion
     session_id = session.get('session_id', 'unknown')
-    user_id = get_int_user_id()
+    user_id = get_int_user_id(session)
 
     # Save final game.js code to DB at experiment completion
     if user_id:
@@ -488,7 +445,7 @@ def get_user_game_code():
 def submit_survey():
     try:
         session_id = session.get('session_id', 'unknown')
-        user_id = get_int_user_id()  # Get anonymous user ID from consent
+        user_id = get_int_user_id(session)  # Get anonymous user ID from consent
         print(f"Session ID: {session_id}, User ID: {user_id}")
         # Remove consent requirement: allow to proceed regardless of user_id
         # Get form data
@@ -507,6 +464,8 @@ def submit_survey():
         uses_ai_tools = request.form.get('uses_ai_tools') == 'yes'
         ai_usage_details = request.form.getlist('ai_usage')
         ai_usage_description = request.form.get('ai_usage_details', '')  # Additional details
+        
+        
         # Save to database with session tracking
         survey_data = Survey(
             session_id=session_id,
@@ -528,6 +487,10 @@ def submit_survey():
             ai_tools_description=ai_usage_description,
             submitted_at=datetime.now()
         )
+        
+        expertise = categorize_expertise_from_existing_survey(survey_data)
+
+        
         if not is_development_mode():
             db.session.add(survey_data)
             db.session.commit()
@@ -641,90 +604,6 @@ def test_database():
             "error": str(e)
         }), 500
 
-@application.route("/test-basic-connection")
-def test_basic_connection():
-    """Test the most basic database connection"""
-    try:
-
-        # Get the database URI
-        uri = application.config.get('SQLALCHEMY_DATABASE_URI')
-        if not uri:
-            return " No database URI configured", 500
-        
-        # Parse the URI
-        parsed = urlparse(uri)
-        
-        connection_info = {
-            'host': parsed.hostname,
-            'port': parsed.port or 5432,
-            'database': parsed.path[1:] if parsed.path else 'postgres',
-            'user': parsed.username,
-            'password_set': bool(parsed.password)
-        }
-        
-        # Try to connect with psycopg2 directly
-        conn = psycopg2.connect(
-            host=connection_info['host'],
-            port=connection_info['port'],
-            database=connection_info['database'],
-            user=connection_info['user'],
-            password=parsed.password,
-            connect_timeout=10,
-            sslmode='require'
-        )
-        
-        # Test the connection
-        cursor = conn.cursor()
-        cursor.execute('SELECT version()')
-        version = cursor.fetchone()[0]
-        cursor.close()
-        conn.close()
-        
-        return f"""
-        <html>
-        <head><title>Connection Test</title></head>
-        <body>
-            <h1>Database Connection Successful!</h1>
-            <h2>Connection Details:</h2>
-            <ul>
-                <li><strong>Host:</strong> {connection_info['host']}</li>
-                <li><strong>Port:</strong> {connection_info['port']}</li>
-                <li><strong>Database:</strong> {connection_info['database']}</li>
-                <li><strong>User:</strong> {connection_info['user']}</li>
-                <li><strong>Password Set:</strong> {connection_info['password_set']}</li>
-            </ul>
-            <h2>Database Version:</h2>
-            <p>{version}</p>
-            
-            <br>
-            <a href="/init-db-safe">Try Safe Database Init</a>
-        </body>
-        </html>
-        """
-        
-    except Exception as e:
-        error_details = traceback.format_exc()
-        
-        return f"""
-        <html>
-        <head><title>Connection Failed</title></head>
-        <body>
-            <h1>Database Connection Failed</h1>
-            <h2>Error:</h2>
-            <p>{str(e)}</p>
-            <h2>Full Error Details:</h2>
-            <pre>{error_details}</pre>
-            
-            <h2>Troubleshooting:</h2>
-            <ul>
-                <li>Check if database is configured in EB Console</li>
-                <li>Verify security groups allow connections</li>
-                <li>Ensure database is in same VPC as EB environment</li>
-            </ul>
-        </body>
-        </html>
-        """, 500
-
 @application.route("/tutorial")
 def tutorial():
     return render_template('tutorial.html')
@@ -760,7 +639,7 @@ def log_game_reload():
     """Log when the user reloads the game window."""
     try:
         session_id = session.get('session_id', 'unknown')
-        user_id = get_int_user_id()
+        user_id = get_int_user_id(session)
         timestamp = datetime.now()
         db_entry = ExperimentData(
             session_id=session_id,
