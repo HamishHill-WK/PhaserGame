@@ -7,7 +7,7 @@ def is_development_mode():
     """Return True if FLASK_ENV is set to 'development'."""
     return os.environ.get('FLASK_ENV', '').lower() == 'development'
 
-def assign_balanced_condition(User):
+def assign_balanced_condition(User, expertise_level=None):
     """
     Assign participant to AI or Control condition based on current balance.
     Args:
@@ -15,8 +15,16 @@ def assign_balanced_condition(User):
     Returns: 'ai' or 'control'
     """
     try:
-        ai_count = User.query.filter_by(assigned_condition='ai', consent_participate=True).count()
-        control_count = User.query.filter_by(assigned_condition='control', consent_participate=True).count()
+        if expertise_level is 'low':
+            ai_count = User.query.filter_by(assigned_condition='ai', expertise_level='low', consent_participate=True).count()
+            control_count = User.query.filter_by(assigned_condition='control', expertise_level='low', consent_participate=True).count()
+        elif expertise_level is 'medium':
+            ai_count = User.query.filter_by(assigned_condition='ai', expertise_level='medium', consent_participate=True).count()
+            control_count = User.query.filter_by(assigned_condition='control', expertise_level='medium', consent_participate=True).count()
+        elif expertise_level is 'high':
+            ai_count = User.query.filter_by(assigned_condition='ai', expertise_level='high', consent_participate=True).count()
+            control_count = User.query.filter_by(assigned_condition='control', expertise_level='high', consent_participate=True).count()
+        
         total_count = ai_count + control_count
         print(f"Current balance - AI: {ai_count}, Control: {control_count}")
         if total_count == 0:
@@ -26,8 +34,9 @@ def assign_balanced_condition(User):
         elif control_count < ai_count:
             assigned_condition = 'control'
         else:
-            assigned_condition = random.choice(['ai', 'control'])
+            assigned_condition = 'ai'
         print(f"Assigned condition: {assigned_condition}")
+        
         return assigned_condition
     except Exception as e:
         print(f"Error in condition assignment: {e}")

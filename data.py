@@ -58,6 +58,7 @@ class User(db.Model):
     participant_code = db.Column(db.String(80), unique=True, nullable=False) #shown to the user so they can request their data is removed
     
     assigned_condition = db.Column(db.String(20), nullable=True)  # 'ai' or 'control'
+    expertise_level = db.Column(db.String(100), nullable=True)  # e.g., Beginner, Intermediate, Advanced
 
     data_deletion_requested = db.Column(db.Boolean, default=False)
     data_deletion_date = db.Column(db.DateTime, nullable=True)
@@ -86,6 +87,8 @@ class Survey(db.Model):
     ai_tools_description = db.Column(db.String(1000))
     ai_usage_details = db.Column(db.Text)
     submitted_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    expertise_level = db.Column(db.String(100))  # e.g., Beginner, Intermediate, Advanced
 
 class ExperimentData(db.Model):
     id = db.Column(db.Integer, primary_key=True)

@@ -489,7 +489,13 @@ def submit_survey():
         )
         
         expertise = categorize_expertise_from_existing_survey(survey_data)
+        
 
+        user = User.query.get(user_id)
+        if user:
+            user.expertise_level = expertise
+            user.assigned_condition = assign_balanced_condition(User, expertise)
+            db.session.commit()
         
         if not is_development_mode():
             db.session.add(survey_data)
