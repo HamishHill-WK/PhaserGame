@@ -2,6 +2,7 @@ import os
 import random
 from datetime import datetime
 from dateutil.parser import isoparse
+import json
 
 def is_development_mode():
     """Return True if FLASK_ENV is set to 'development'."""
@@ -60,19 +61,59 @@ def get_int_user_id(session):
         return None
 
 def categorize_expertise_from_existing_survey(survey_data):
+    """
+    Categorize expertise level based on survey data using research-informed scoring.
     
-    # Extract your existing fields
-    prog_level = survey_data.get('programming_experience_level', 'none')
-    game_level = survey_data.get('game_dev_experience_level', 'none') 
-    prog_years = survey_data.get('programming_experience_years', 0) or 0
-    game_years = survey_data.get('game_dev_experience_years', 0) or 0
-    languages = survey_data.get('programming_languages', [])
-    engines = survey_data.get('game_engines', [])
-    used_phaser = survey_data.get('used_phaser', False)
-    prog_professional = survey_data.get('programming_proffessional_level')
-    game_professional = survey_data.get('game_dev_proffessional_level')
+    Args:
+        survey_data: Survey object with all survey responses
     
-    # Research-based scoring using existing data
+    Returns:
+        str: 'low', 'medium', or 'high' expertise level
+    """
+    
+    # Extract fields (using attribute access for SQLAlchemy objects)
+    prog_level = getattr(survey_data, 'programming_experience_level', 'none') or 'none'
+    game_level = getattr(survey_data, 'game_dev_experience_level', 'none') or 'none'
+    prog_years = getattr(survey_data, 'programming_experience_years', 0) or 0
+    game_years = getattr(survey_data, 'game_dev_experience_years', 0) or 0
+    
+    # Handle JSON fields
+    try:
+        languages = json.loads(getattr(survey_data, 'programming_languages', '[]') or '[]')
+    except (json.JSONDecodeError, TypeError):
+        languages = []
+    
+    try:
+        engines = json.loads(getattr(survey_data, 'game_engines', '[]') or '[]')
+    except (json.JSONDecodeError, TypeError):
+        engines = []
+    
+    # Professional levels
+    prog_professional = getattr(survey_data, 'programming_proffessional_level', None)
+    game_professional = getattr(survey_data, 'game_dev_proffessional_level', None)
+    
+    # New fields
+    used_phaser = getattr(survey_data, 'used_phaser', False)
+    is_student = getattr(survey_data, 'is_student', False)
+    is_graduate = getattr(survey_data, 'is_graduate', False)
+    is_self_taught = getattr(survey_data, 'is_self_taught', False)
+    
+    # Educational experience fields
+    try:
+        self_taught_exp = json.loads(getattr(survey_data, 'self_taught_experience', '[]') or '[]')
+    except (json.JSONDecodeError, TypeError):
+        self_taught_exp = []
+    
+    try:
+        course_prog_exp = json.loads(getattr(survey_data, 'course_programming_experience', '[]') or '[]')
+    except (json.JSONDecodeError, TypeError):
+        course_prog_exp = []
+    
+    degree_current = getattr(survey_data, 'degree_level_current', None)
+    degree_highest = getattr(survey_data, 'degree_level_highest', None)
+    undergrad_year = getattr(survey_data, 'undergrad_year', None)
+    
+    # Research-based scoring using existing and new data
     expertise_indicators = 0
     
     # 1. Professional context (research: strongest indicator after aptitude)
@@ -80,16 +121,22 @@ def categorize_expertise_from_existing_survey(survey_data):
         expertise_indicators += 3
     elif prog_level == 'professional' or game_level == 'professional':
         expertise_indicators += 2
+    elif prog_professional in ['senior', 'lead'] or game_professional in ['senior', 'lead']:
+        expertise_indicators += 2
+    elif prog_professional in ['mid'] or game_professional in ['mid']:
+        expertise_indicators += 1
         
     # 2. Tool-specific knowledge (research: better predictor than general experience)
     if 'javascript' in languages:
         expertise_indicators += 2  # Directly relevant to your study
     if used_phaser:
-        expertise_indicators += 2  # Highly relevant
-    if len(languages) >= 3:
-        expertise_indicators += 1  # Breadth indicator
+        expertise_indicators += 2  # Highly relevant to Phaser.js study
+    if len(languages) >= 5:
+        expertise_indicators += 1.5  # Strong breadth
+    elif len(languages) >= 3:
+        expertise_indicators += 1  # Good breadth
         
-    # 3. Domain expertise (research: context-dependent)
+    # 3. Domain expertise
     if game_level in ['advanced', 'professional']:
         expertise_indicators += 2
     elif game_level == 'moderate':
@@ -101,17 +148,60 @@ def categorize_expertise_from_existing_survey(survey_data):
     elif prog_level == 'moderate':
         expertise_indicators += 1
         
-    # 5. Experience (research: weak predictor, so minimal weight)
+    # 5. Educational background (new scoring)
+    # Graduate degree holders
+    if degree_highest == 'phd':
+        expertise_indicators += 2
+    elif degree_highest == 'masters':
+        expertise_indicators += 1.5
+    elif degree_highest == 'undergraduate':
+        expertise_indicators += 1
+    
+    # Current students
+    if is_student:
+        if degree_current == 'phd':
+            expertise_indicators += 1.5
+        elif degree_current == 'masters':
+            expertise_indicators += 1
+        elif degree_current == 'undergraduate':
+            # Consider year level
+            if undergrad_year in ['3', '4']:
+                expertise_indicators += 0.5
+    
+    # Course programming experience
+    if 'large_projects' in course_prog_exp:
+        expertise_indicators += 1.5
+    elif 'advanced_modules' in course_prog_exp:
+        expertise_indicators += 1
+    elif 'intro_modules' in course_prog_exp:
+        expertise_indicators += 0.5
+    
+    # Self-taught experience (shows initiative and practical skills)
+    if 'released_app' in self_taught_exp:
+        expertise_indicators += 2  # Very strong indicator
+    elif 'spare_time_projects' in self_taught_exp:
+        expertise_indicators += 1.5
+    elif 'intro_tutorials' in self_taught_exp:
+        expertise_indicators += 0.5
+    
+    # 6. Experience years (research: weak predictor, so minimal weight)
     max_years = max(prog_years, game_years)
-    if max_years >= 5:
+    if max_years >= 10:
+        expertise_indicators += 1.5
+    elif max_years >= 5:
         expertise_indicators += 1
     elif max_years >= 2:
         expertise_indicators += 0.5
-        
-    # Research-informed categorization (avoid binary expert/novice)
-    if expertise_indicators >= 7:
+    
+    # 7. Game engine experience
+    if len(engines) >= 3:
+        expertise_indicators += 1
+    elif len(engines) >= 1 and 'none' not in engines:
+        expertise_indicators += 0.5
+    
+    if expertise_indicators >= 8:
         return 'high'
-    elif expertise_indicators >= 3:
+    elif expertise_indicators >= 4:
         return 'medium'
     else:
         return 'low'
