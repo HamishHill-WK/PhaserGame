@@ -15,15 +15,17 @@ def assign_balanced_condition(User, expertise_level=None):
     Returns: 'ai' or 'control'
     """
     try:
+        ai_count = 0
+        control_count = 0
         if expertise_level is 'low':
-            ai_count = User.query.filter_by(assigned_condition='ai', expertise_level='low', consent_participate=True).count()
-            control_count = User.query.filter_by(assigned_condition='control', expertise_level='low', consent_participate=True).count()
+            ai_count = User.query.filter_by(assigned_condition='ai', expertise_level='low', consent_participate=True).count() or 0
+            control_count = User.query.filter_by(assigned_condition='control', expertise_level='low', consent_participate=True).count() or 0
         elif expertise_level is 'medium':
-            ai_count = User.query.filter_by(assigned_condition='ai', expertise_level='medium', consent_participate=True).count()
-            control_count = User.query.filter_by(assigned_condition='control', expertise_level='medium', consent_participate=True).count()
+            ai_count = User.query.filter_by(assigned_condition='ai', expertise_level='medium', consent_participate=True).count() or 0
+            control_count = User.query.filter_by(assigned_condition='control', expertise_level='medium', consent_participate=True).count() or 0
         elif expertise_level is 'high':
-            ai_count = User.query.filter_by(assigned_condition='ai', expertise_level='high', consent_participate=True).count()
-            control_count = User.query.filter_by(assigned_condition='control', expertise_level='high', consent_participate=True).count()
+            ai_count = User.query.filter_by(assigned_condition='ai', expertise_level='high', consent_participate=True).count() or 0
+            control_count = User.query.filter_by(assigned_condition='control', expertise_level='high', consent_participate=True).count() or 0
         
         total_count = ai_count + control_count
         print(f"Current balance - AI: {ai_count}, Control: {control_count}")

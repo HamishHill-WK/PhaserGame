@@ -11,7 +11,7 @@
         <form method="POST" action="{{ url_for('submit_survey') }}">
             <div class="question-group">
                 <label for="game_dev_experience_detailed">What is your experience of Game development? <span class="required">*</span></label>
-                <select name="game_dev_experience_detailed" id="game_dev_experience_detailed" required onchange="toggleGameDevPosition()">
+                <select name="game_dev_experience_detailed" id="game_dev_experience_detailed" required>
                     <option value="">Select your experience level</option>
                     <option value="none" {{ 'selected' if form_data and form_data.game_dev_experience_detailed == 'none' }}>None</option>
                     <option value="limited" {{ 'selected' if form_data and form_data.game_dev_experience_detailed == 'limited' }}>Limited</option>
@@ -32,12 +32,7 @@
                 </select>
             </div>
 
-            <div class="question-group">
-                <label for="gamedev_details">Please provide further details about your game development experience:</label>
-                <textarea name="gamedev_details" id="gamedev_details" placeholder="e.g., types of games worked on, engines used, team size...">{{ form_data.gamedev_details if form_data else '' }}</textarea>
-            </div>
-
-            <div class="question-group">
+            <div class="question-group" id="gamedev-years-group" style="display: {% if form_data and form_data.game_dev_experience_detailed != 'none' %}block{% else %}none{% endif %};">
                 <label for="gamedev_years">How many years have you practiced Game development?</label>
                 <input type="number" name="gamedev_years" id="gamedev_years" min="0" max="50" step="0.5" 
                     value="{{ form_data.gamedev_years if form_data else '' }}" 
@@ -45,7 +40,7 @@
                 <small style="display: block; margin-top: 5px; color: #666;">Enter 0 if no experience, decimals allowed (e.g., 1.5 for 1.5 years)</small>
             </div>
 
-            <div class="question-group">
+            <div class="question-group" id="game-engines-group" style="display: {% if form_data and form_data.game_dev_experience_detailed != 'none' %}block{% else %}none{% endif %};">
                 <div>Which game engines have you used? (Select all that apply)</div>
                 <div class="languages-grid" id="game_engines">
                     <label><input type="checkbox" name="engines" value="unity"> Unity</label>
@@ -67,7 +62,7 @@
 
             <div class="question-group">
                 <label for="programming_experience_detailed">What is your experience of programming? <span class="required">*</span></label>
-                <select name="programming_experience_detailed" id="programming_experience_detailed" required onchange="toggleProgrammingPosition()">
+                <select name="programming_experience_detailed" id="programming_experience_detailed" required>
                     <option value="">Select your experience level</option>
                     <option value="none" {{ 'selected' if form_data and form_data.programming_experience_detailed == 'none' }}>None</option>
                     <option value="limited" {{ 'selected' if form_data and form_data.programming_experience_detailed == 'limited' }}>Limited</option>
@@ -77,23 +72,123 @@
                 </select>
             </div>
 
-            <div class="question-group conditional-field" id="programming-position-group" style="display: none;">
-                <label for="programming_position">If you selected professional, what is the highest position you have worked in?</label>
-                <select name="programming_position" id="programming_position">
-                    <option value="">Select position</option>
-                    <option value="junior" {{ 'selected' if form_data and form_data.programming_position == 'junior' }}>Junior</option>
-                    <option value="mid" {{ 'selected' if form_data and form_data.programming_position == 'mid' }}>Mid</option>
-                    <option value="senior" {{ 'selected' if form_data and form_data.programming_position == 'senior' }}>Senior</option>
-                    <option value="lead" {{ 'selected' if form_data and form_data.programming_position == 'lead' }}>Lead</option>
-                </select>
-            </div>
-
             <div class="question-group">
-                <label for="programming_details">Please provide further details about your programming experience:</label>
-                <textarea name="programming_details" id="programming_details" placeholder="e.g., industries worked in, types of applications built, specializations...">{{ form_data.programming_details if form_data else '' }}</textarea>
-            </div>
+                <label>
+                    <input type="checkbox" name="is_student" id="is_student"
+                        {% if form_data and form_data.is_student %}checked{% endif %}>
+                    I am currently a student
+                </label>
+                <div class="question-group">
+                    <label>
+                        <input type="checkbox" name="is_graduate" id="is_graduate"
+                            {% if form_data and form_data.is_graduate %}checked{% endif %}
+                            onchange="toggleGraduateFields()">
+                        I am a graduate
+                    </label>
+                </div>
 
-            <div class="question-group">
+                <div class="question-group">
+                    <label>
+                        <input type="checkbox" name="is_self_taught" id="is_self_taught"
+                            {% if form_data and form_data.is_self_taught %}checked{% endif %}
+                            onchange="toggleSelfTaughtFields()">
+                        I am self taught
+                    </label>
+                </div>
+
+                <div class="question-group" id="self-taught-details-group" style="display: {% if form_data and form_data.is_self_taught %}block{% else %}none{% endif %}; margin-left: 24px;">
+                    <label>If self taught, which of the following apply? (Select all that apply)</label>
+                    <div>
+                        <label>
+                            <input type="checkbox" name="self_taught_experience" value="intro_tutorials"
+                                {% if form_data and 'intro_tutorials' in (form_data.self_taught_experience or []) %}checked{% endif %}>
+                            I have done a small number of introductory tutorials
+                        </label>
+                    </div>
+                    <div>
+                        <label>
+                            <input type="checkbox" name="self_taught_experience" value="spare_time_projects"
+                                {% if form_data and 'spare_time_projects' in (form_data.self_taught_experience or []) %}checked{% endif %}>
+                            I have completed several programming projects in my own time
+                        </label>
+                    </div>
+                    <div>
+                        <label>
+                            <input type="checkbox" name="self_taught_experience" value="released_app"
+                                {% if form_data and 'released_app' in (form_data.self_taught_experience or []) %}checked{% endif %}>
+                            I have released a complete application
+                        </label>
+                    </div>
+                </div>
+
+                <div class="question-group" id="degree-level-current-group" style="display: {% if form_data and form_data.is_student %}block{% else %}none{% endif %};">
+                    <label for="degree_level_current">Degree level currently being studied:</label>
+                    <select name="degree_level_current" id="degree_level_current">
+                        <option value="">Select degree level</option>
+                        <option value="undergraduate" {% if form_data and form_data.degree_level_current == 'undergraduate' %}selected{% endif %}>Undergraduate</option>
+                        <option value="masters" {% if form_data and form_data.degree_level_current == 'masters' %}selected{% endif %}>Masters</option>
+                        <option value="phd" {% if form_data and form_data.degree_level_current == 'phd' %}selected{% endif %}>PhD</option>
+                    </select>
+                </div>
+
+                <div class="question-group" id="degree-level-highest-group" style="display: {% if form_data and form_data.is_graduate %}block{% else %}none{% endif %};">
+                    <label for="degree_level_highest">Highest degree obtained:</label>
+                    <select name="degree_level_highest" id="degree_level_highest">
+                        <option value="">Select highest degree</option>
+                        <option value="undergraduate" {% if form_data and form_data.degree_level_highest == 'undergraduate' %}selected{% endif %}>Undergraduate</option>
+                        <option value="masters" {% if form_data and form_data.degree_level_highest == 'masters' %}selected{% endif %}>Masters</option>
+                        <option value="phd" {% if form_data and form_data.degree_level_highest == 'phd' %}selected{% endif %}>PhD</option>
+                    </select>
+                </div>
+
+                <div class="question-group" id="course-programming-experience-group" style="display: {% if form_data and (form_data.is_student or form_data.is_graduate) %}block{% else %}none{% endif %};">
+                    <label>During your course, which of the following apply? (Select all that apply)</label>
+                    <div>
+                        <label>
+                            <input type="checkbox" name="course_programming_experience" value="intro_modules"
+                                {% if form_data and 'intro_modules' in (form_data.course_programming_experience or []) %}checked{% endif %}>
+                            I completed a small number of introductory programming modules as part of my course
+                        </label>
+                    </div>
+                    <div>
+                        <label>
+                            <input type="checkbox" name="course_programming_experience" value="advanced_modules"
+                                {% if form_data and 'advanced_modules' in (form_data.course_programming_experience or []) %}checked{% endif %}>
+                            I completed several programming modules which covered theory and implementation of advanced programming concepts.
+                        </label>
+                    </div>
+                    <div>
+                        <label>
+                            <input type="checkbox" name="course_programming_experience" value="large_projects"
+                                {% if form_data and 'large_projects' in (form_data.course_programming_experience or []) %}checked{% endif %}>
+                            I produced several large programming projects as part of my course
+                        </label>
+                    </div>
+                </div>
+
+                <div class="question-group" id="undergrad-year-group" style="display: {% if form_data and form_data.degree_level_current == 'undergraduate' %}block{% else %}none{% endif %};">
+                    <label for="undergrad_year">If undergraduate, what year of your course are you in?</label>
+                    <select name="undergrad_year" id="undergrad_year">
+                        <option value="">Select year</option>
+                        <option value="1" {% if form_data and form_data.undergrad_year == '1' %}selected{% endif %}>1</option>
+                        <option value="2" {% if form_data and form_data.undergrad_year == '2' %}selected{% endif %}>2</option>
+                        <option value="3" {% if form_data and form_data.undergrad_year == '3' %}selected{% endif %}>3</option>
+                        <option value="4" {% if form_data and form_data.undergrad_year == '4' %}selected{% endif %}>4</option>
+                    </select>
+                </div>
+
+                <div class="question-group conditional-field" id="programming-position-group" style="display: none;">
+                    <label for="programming_position">If you selected professional, what is the highest position you have worked in?</label>
+                    <select name="programming_position" id="programming_position">
+                        <option value="">Select position</option>
+                        <option value="junior" {{ 'selected' if form_data and form_data.programming_position == 'junior' }}>Junior</option>
+                        <option value="mid" {{ 'selected' if form_data and form_data.programming_position == 'mid' }}>Mid</option>
+                        <option value="senior" {{ 'selected' if form_data and form_data.programming_position == 'senior' }}>Senior</option>
+                        <option value="lead" {{ 'selected' if form_data and form_data.programming_position == 'lead' }}>Lead</option>
+                    </select>
+                </div>
+
+            <div class="question-group" id="programming-years-group" style="display: {% if form_data and (form_data.programming_experience_detailed != 'none' or form_data.game_dev_experience_detailed != 'none') %}block{% else %}none{% endif %};">
                 <label for="programming_years">How many years have you practiced programming?</label>
                 <input type="number" name="programming_years" id="programming_years" min="0" max="50" step="0.5" 
                     value="{{ form_data.programming_years if form_data else '' }}" 
@@ -101,7 +196,7 @@
                 <small style="display: block; margin-top: 5px; color: #666;">Enter 0 if no experience, decimals allowed (e.g., 3.5 for 3.5 years)</small>
             </div>
 
-            <div class="question-group">
+            <div class="question-group" id="programming-languages-group" style="display: {% if form_data and (form_data.programming_experience_detailed != 'none' or form_data.game_dev_experience_detailed != 'none') %}block{% else %}none{% endif %};">
                 <div>Which programming languages have you used? (Select all that apply)</div>
                 <div class="languages-grid" id="programming_languages">
                     <label><input type="checkbox" name="languages" value="javascript" onchange='toggleJavaScriptUsage()'> JavaScript</label>
@@ -219,8 +314,19 @@
             </div>
 
             <div class="question-group conditional-field" id="ai-details-group" style="display: none;">
-                <label for="ai_usage_details">Please provide further details about how you use Generative AI:</label>
+                <label for="ai_usage_details">(Optional) provide further details about how you use Generative AI if you wish (max 100 words):</label>
                 <textarea name="ai_usage_details" id="ai_usage_details" placeholder="e.g., specific tools used (ChatGPT, Copilot, etc.), frequency of use, typical tasks...">{{ form_data.ai_usage_details if form_data else '' }}</textarea>
+                <div class="word-count" style="font-size: 0.9em; color: #666; margin-top: 2px;">
+                    <span id="ai_usage_details_count">0 / 100 words</span>
+                </div>
+            </div>
+
+            <div class="question-group" id="experience-details-group" style="display: {% if form_data and (form_data.programming_experience_detailed != 'none' or form_data.game_dev_experience_detailed != 'none') %}block{% else %}none{% endif %};">
+                <label for="description">(Optional) Are there any other details  you wish to share about your programming or game development experience? (max 100 words):</label>
+                <textarea name="description" id="description" placeholder="e.g., types of projects, roles, technologies used...">{{ form_data.description if form_data else '' }}</textarea>
+                <div class="word-count" style="font-size: 0.9em; color: #666; margin-top: 2px;">
+                    <span id="description_count">0 / 100 words</span>
+                </div>
             </div>
 
             <button type="submit" class="submit-btn">Continue to Experiment</button>

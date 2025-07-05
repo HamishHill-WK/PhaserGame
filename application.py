@@ -445,59 +445,81 @@ def get_user_game_code():
 def submit_survey():
     try:
         session_id = session.get('session_id', 'unknown')
-        user_id = get_int_user_id(session)  # Get anonymous user ID from consent
-        print(f"Session ID: {session_id}, User ID: {user_id}")
-        # Remove consent requirement: allow to proceed regardless of user_id
-        # Get form data
-        game_dev_experience_description = request.form.get('gamedev_details')
+        anon_user = session.get('anonymous_user', {})
+        participant_code = anon_user.get('participant_code')
+        signed_date = anon_user.get('signed_date')
+
         game_dev_experience_level = request.form.get('game_dev_experience_detailed')
         game_dev_proffessional_level = request.form.get('gamedev_position')
         game_dev_experience_years = request.form.get('gamedev_years', type=float)
-        game_engines = request.form.getlist('engines')  # Multiple selections
+        game_engines = request.form.getlist('engines')
+        
         programming_experience_level = request.form.get('programming_experience_detailed')
         programming_proffessional_level = request.form.get('programming_position')
-        programming_experience_description = request.form.get('programming_details')
         programming_experience_years = request.form.get('programming_years', type=float)
-        programming_languages = request.form.getlist('languages')  # Multiple selections
+        programming_languages = request.form.getlist('languages')
+        
         used_phaser = request.form.get('used_phaser') == 'yes'
-        phaser_experience_description = request.form.get('phaser_details', '')  # Additional details
+        phaser_experience_description = request.form.get('phaser_details', '')
         uses_ai_tools = request.form.get('uses_ai_tools') == 'yes'
         ai_usage_details = request.form.getlist('ai_usage')
-        ai_usage_description = request.form.get('ai_usage_details', '')  # Additional details
-        
-        
+        ai_usage_description = request.form.get('ai_usage_details', '')
+        experience_description = request.form.get('experience_details', '')
+
+        # Student/graduate/self-taught fields
+        is_student = bool(request.form.get('is_student'))
+        is_graduate = bool(request.form.get('is_graduate'))
+        is_self_taught = bool(request.form.get('is_self_taught'))
+        self_taught_experience = request.form.getlist('self_taught_experience')
+        degree_level_current = request.form.get('degree_level_current')
+        degree_level_highest = request.form.get('degree_level_highest')
+        course_programming_experience = request.form.getlist('course_programming_experience')
+        undergrad_year = request.form.get('undergrad_year')
+
         # Save to database with session tracking
         survey_data = Survey(
             session_id=session_id,
-            user_id=user_id,  # Link to anonymous user from consent if available
-            game_dev_experience_description=game_dev_experience_description,
+            participant_code=participant_code,
             game_dev_experience_level=game_dev_experience_level,
             game_dev_proffessional_level=game_dev_proffessional_level,
             game_dev_experience_years=game_dev_experience_years,
-            game_engines=json.dumps(game_engines) if game_engines else '',  # Convert
-            programming_experience_description=programming_experience_description,
+            game_engines=json.dumps(game_engines) if game_engines else '',
             programming_experience_years=programming_experience_years,
             programming_experience_level=programming_experience_level,
             programming_proffessional_level=programming_proffessional_level,
-            programming_languages=json.dumps(programming_languages) if programming_languages else '',  # Store as JSON string            
+            programming_languages=json.dumps(programming_languages) if programming_languages else '',
             used_phaser=used_phaser,
             phaser_experience_description=phaser_experience_description,
             uses_ai_tools=uses_ai_tools,
-            ai_usage_details=ai_usage_details,
+            ai_usage_details=json.dumps(ai_usage_details) if ai_usage_details else '',
             ai_tools_description=ai_usage_description,
-            submitted_at=datetime.now()
+            experience_description=experience_description,
+            is_student=is_student,
+            is_graduate=is_graduate,
+            is_self_taught=is_self_taught,
+            self_taught_experience=json.dumps(self_taught_experience) if self_taught_experience else '',
+            degree_level_current=degree_level_current,
+            degree_level_highest=degree_level_highest,
+            course_programming_experience=json.dumps(course_programming_experience) if course_programming_experience else '',
+            undergrad_year=undergrad_year,
+            submitted_at=datetime.now(),
+            description=request.form.get('description', '')
         )
         
         expertise = categorize_expertise_from_existing_survey(survey_data)
-        
+        assigned_condition = assign_balanced_condition(User, expertise)
 
-        user = User.query.get(user_id)
-        if user:
-            user.expertise_level = expertise
-            user.assigned_condition = assign_balanced_condition(User, expertise)
-            db.session.commit()
+        # Create the user in the database
+        user = User(
+            participant_code=participant_code,
+            assigned_condition=assigned_condition,
+            expertise_level=expertise,
+            signed_date=signed_date
+            )
         
         if not is_development_mode():
+            db.session.add(user)
+            db.session.commit()
             db.session.add(survey_data)
             db.session.commit()
         else:
@@ -522,36 +544,17 @@ def log_consent():
     """Log consent decision with session tracking and create user in DB here"""
     try:
         print("Logging consent...")
-        session_id = session.get('session_id', 'unknown')
-        consent_participate = request.form.get('consent_participate', False)
-        if consent_participate == 'yes':
-            consent_participate = True
-        consent_data = request.form.get('consent_data', False)
-        if consent_data == 'yes':
-            consent_data = True
-        user_name = request.form.get('signature', '')
         signed_date_form = request.form.get('date', datetime.now().isoformat())
-        # Use participant_code from session if available
         participant_code_val = session.get('participant_code')
         if not participant_code_val:
             participant_code_val = f"P{uuid.uuid4().hex[:8].upper()}"
             session['participant_code'] = participant_code_val
-        anonymous_user = User(
-            signed=user_name,
-            consent_data=consent_data,
-            consent_participate=consent_participate,
-            participant_code=participant_code_val,  # Use session participant code
-            signed_date=signed_date_form
-        )
-        # Only commit to DB if not in development mode
-        if not is_development_mode():
-            db.session.add(anonymous_user)
-            db.session.flush()  # Get the user ID without committing
-            session['user_id'] = anonymous_user.id  # Store integer ID
-            db.session.commit()  # Now commit
-        else:
-            print("[DEV] Skipping DB commit for anonymous user (development mode)")
-            session['user_id'] = None
+        # Store the user object in the session for use on the survey page
+        session['anonymous_user'] = {
+            'participant_code': participant_code_val,
+            'signed_date': signed_date_form
+        }
+        session['user_id'] = None
         return redirect(url_for('survey'))
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
