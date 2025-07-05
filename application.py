@@ -5,7 +5,7 @@ from datetime import datetime
 import assistant
 import secval
 import uuid
-from data import db, Survey, ExperimentData, User, configure_database, is_development_mode, TaskCheck
+from data import db, Survey, ExperimentData, User, configure_database, is_development_mode, TaskCheck, CodeChange
 from dotenv import load_dotenv 
 import difflib
 from dateutil.parser import isoparse
@@ -14,7 +14,7 @@ from sqlalchemy import inspect
 import psycopg2
 from urllib.parse import urlparse
 import traceback
-from application_helper import is_development_mode, assign_balanced_condition, get_int_user_id, categorize_expertise_from_existing_survey
+from application_helper import is_development_mode, assign_balanced_condition, get_int_user_id, categorize_expertise_from_existing_survey, count_js_errors
 load_dotenv()
 
 validator = secval.SimpleSecurityValidator()
@@ -104,7 +104,6 @@ def save_code():
             return jsonify({"success": False, "error": f"Security violation: {'; '.join(violation_messages)}"})
         
         code_lines = code.split('\n')
-
         file_name = data.get("file")
         
         # Validate file name to prevent directory traversal
@@ -121,8 +120,13 @@ def save_code():
             with open(user_file_path, "r", encoding="utf-8") as f:
                 prev_code = f.read()
         prev_lines = prev_code.split('\n') if prev_code else []
-        diff = list(difflib.unified_diff(prev_lines, code_lines, lineterm=''))
-        # --- Check if AI assistant was used since last save ---
+        diff = list(difflib.unified_diff(prev_lines, code_lines, lineterm=''))        
+        last_error_count = session.get('error_count', 0)
+        
+        error_count = count_js_errors(code) or 0
+        if error_count != 0:
+            session['error_count'] = error_count
+
         last_ai_usage = session.get('last_ai_usage')
         last_code_save = session.get('last_code_save')
         used_ai = False
@@ -138,19 +142,29 @@ def save_code():
                 used_ai = False
         # Only log if there are changes
         if user_id and diff:
-            experiment_data = ExperimentData(
-                session_id=session_id,
+            # Log code change to CodeChange table
+            # Get previous and new code as strings
+            prev_code_str = '\n'.join(prev_lines)
+            new_code_str = code
+            # Calculate line changes
+            lines_changed = len(diff)
+            lines_added = sum(1 for d in diff if d.startswith('+') and not d.startswith('+++'))
+            lines_removed = sum(1 for d in diff if d.startswith('-') and not d.startswith('---'))
+            # Optionally, you could track errors_before/errors_after if available
+            code_change = CodeChange(
                 user_id=user_id,
-                user_action="code_change",
-                timestamp=datetime.now(),
-                data=json.dumps({
-                    "file_name": file_name,
-                    "diff": diff,
-                    "used_ai_assistant_since_last_save": used_ai
-                })
+                participant_code=session.get('participant_code', 'unknown'),
+                code_before=prev_code_str,
+                code_after=new_code_str,
+                lines_changed=lines_changed,
+                lines_added=lines_added,
+                lines_removed=lines_removed,
+                errors_before=last_error_count,
+                errors_after=error_count,
+                timestamp=datetime.now()
             )
             if not is_development_mode():
-                db.session.add(experiment_data)
+                db.session.add(code_change)
                 db.session.commit()
             else:
                 print("[DEV] Skipping DB commit for code_change (development mode)")
@@ -164,6 +178,7 @@ def save_code():
             experiment_data = ExperimentData(
                 session_id=session_id,
                 user_id=user_id,
+                participant_code=session.get('participant_code', 'unknown'),
                 user_action="code_save",
                 timestamp=datetime.now(),
                 data=json.dumps({
@@ -199,16 +214,6 @@ def log_error():
 
         # Generate a unique error code
         error_id = f"ERR-{uuid.uuid4().hex[:8]}"
-
-        # Add error_id to the error data
-        data["error_id"] = error_id
-        
-        # Log the error message
-        errors.append({
-            "error_id": error_id,
-            "message": error_message,
-            "timestamp": datetime.now().isoformat()
-        })
         
         # Log error to experiment data for research tracking
         if user_id:
@@ -216,6 +221,7 @@ def log_error():
                 session_id=session_id,
                 user_id=user_id,
                 user_action="code_error",
+                participant_code=session.get('participant_code', 'unknown'),
                 timestamp=datetime.now(),
                 data=json.dumps({
                     "error_id": error_id,
@@ -258,6 +264,7 @@ def LLMrequest():
             db.session.add(ExperimentData(
                 session_id=session_id,
                 user_id=user_id,
+                participant_code=session.get('participant_code', 'unknown'),
                 user_action="llm_message",
                 timestamp=datetime.now(),
                 data=json.dumps({
@@ -308,40 +315,6 @@ def LLMrequest():
         reponse_list = list(response_segments.values())
         
         return jsonify(reponse_list)
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)})
-
-@application.route("/save-final-game-code", methods=["POST"])
-def save_final_game_code():
-    """Save the user's final game.js script to the database at experiment completion."""
-    try:
-        session_id = session.get('session_id', 'unknown')
-        user_id = get_int_user_id(session)
-        if not user_id:
-            return jsonify({"success": False, "error": "No user_id in session"}), 400
-        user_file_path = os.path.join(application.static_folder, "js", "users", f"game_{session_id}.js")
-        if not os.path.exists(user_file_path):
-            return jsonify({"success": False, "error": "User game.js file not found"}), 404
-        with open(user_file_path, "r", encoding="utf-8") as f:
-            code = f.read()
-        experiment_data = ExperimentData(
-            session_id=session_id,
-            user_id=user_id,
-            user_action="final_code_save",
-            timestamp=datetime.now(),
-            data=json.dumps({
-                "file_name": f"game_{session_id}.js",
-                "final_code": code,
-                "code_length": len(code),
-                "lines_count": len(code.split('\n'))
-            })
-        )
-        if not is_development_mode():
-            db.session.add(experiment_data)
-            db.session.commit()
-        else:
-            print("[DEV] Skipping DB commit for final_code_save (development mode)")
-        return jsonify({"success": True})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
@@ -606,7 +579,6 @@ def log_task_check():
     try:
         data = request.get_json()
         task_id = data.get('task_id')
-        checked = bool(data.get('checked'))
         user_id = session.get('user_id')
         session_id = session.get('session_id', 'unknown')
         if not user_id:
@@ -614,8 +586,8 @@ def log_task_check():
         task_check = TaskCheck(
             user_id=user_id,
             session_id=session_id,
+            participant_code=session.get('participant_code', 'unknown'),
             task_id=task_id,
-            checked=checked
         )
         db.session.add(task_check)
         db.session.commit()
@@ -633,6 +605,7 @@ def log_game_reload():
         db_entry = ExperimentData(
             session_id=session_id,
             user_id=user_id,
+            participant_code=session.get('participant_code', 'unknown'),
             user_action="game_reload",
             timestamp=timestamp,
             data=json.dumps({
