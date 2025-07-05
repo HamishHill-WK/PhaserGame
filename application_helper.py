@@ -88,6 +88,7 @@ def categorize_expertise_from_existing_survey(survey_data):
     
     # Relevant experience fields
     used_phaser = getattr(survey_data, 'used_phaser', False)
+    course_related = getattr(survey_data, 'course_related', False)  # NEW FIELD
     
     try:
         self_taught_exp = json.loads(getattr(survey_data, 'self_taught_experience', '[]') or '[]')
@@ -132,13 +133,22 @@ def categorize_expertise_from_existing_survey(survey_data):
     elif len(languages) >= 3:
         expertise_indicators += 1  # Good breadth
         
-    # 3. Course programming experience (actual relevant learning)
-    if 'large_projects' in course_prog_exp:
-        expertise_indicators += 1.5
-    elif 'advanced_modules' in course_prog_exp:
-        expertise_indicators += 1
-    elif 'intro_modules' in course_prog_exp:
-        expertise_indicators += 0.5
+    # 3. Course programming experience (now weighted by relevance)
+    if course_prog_exp:  # Only score if they have course experience
+        # Calculate base course score
+        course_score = 0
+        if 'large_projects' in course_prog_exp:
+            course_score = 1.5
+        elif 'advanced_modules' in course_prog_exp:
+            course_score = 1
+        elif 'intro_modules' in course_prog_exp:
+            course_score = 0.5
+        
+        # Apply relevance multiplier
+        if course_related:
+            expertise_indicators += course_score
+        else:
+            expertise_indicators += course_score * 0.75
     
     # 4. Self-taught experience (shows initiative and practical skills)
     if 'released_app' in self_taught_exp:
@@ -164,9 +174,11 @@ def categorize_expertise_from_existing_survey(survey_data):
         expertise_indicators += 0.5
     
     # Research-informed categorization
-    if expertise_indicators >= 7:
+    
+    # Research-informed categorization
+    if expertise_indicators >= 10:
         return 'high'
-    elif expertise_indicators >= 3.5:
+    elif expertise_indicators >= 6:
         return 'medium'
     else:
         return 'low'
