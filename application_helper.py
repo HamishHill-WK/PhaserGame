@@ -63,12 +63,6 @@ def get_int_user_id(session):
 def categorize_expertise_from_existing_survey(survey_data):
     """
     Categorize expertise level based on survey data using research-informed scoring.
-    
-    Args:
-        survey_data: Survey object with all survey responses
-    
-    Returns:
-        str: 'low', 'medium', or 'high' expertise level
     """
     
     # Extract fields (using attribute access for SQLAlchemy objects)
@@ -92,13 +86,9 @@ def categorize_expertise_from_existing_survey(survey_data):
     prog_professional = getattr(survey_data, 'programming_proffessional_level', None)
     game_professional = getattr(survey_data, 'game_dev_proffessional_level', None)
     
-    # New fields
+    # Relevant experience fields
     used_phaser = getattr(survey_data, 'used_phaser', False)
-    is_student = getattr(survey_data, 'is_student', False)
-    is_graduate = getattr(survey_data, 'is_graduate', False)
-    is_self_taught = getattr(survey_data, 'is_self_taught', False)
     
-    # Educational experience fields
     try:
         self_taught_exp = json.loads(getattr(survey_data, 'self_taught_experience', '[]') or '[]')
     except (json.JSONDecodeError, TypeError):
@@ -109,22 +99,28 @@ def categorize_expertise_from_existing_survey(survey_data):
     except (json.JSONDecodeError, TypeError):
         course_prog_exp = []
     
-    degree_current = getattr(survey_data, 'degree_level_current', None)
-    degree_highest = getattr(survey_data, 'degree_level_highest', None)
-    undergrad_year = getattr(survey_data, 'undergrad_year', None)
-    
-    # Research-based scoring using existing and new data
+    # Research-based scoring
     expertise_indicators = 0
     
-    # 1. Professional context (research: strongest indicator after aptitude)
-    if prog_professional == 'professional' or game_professional == 'professional':
-        expertise_indicators += 3
-    elif prog_level == 'professional' or game_level == 'professional':
-        expertise_indicators += 2
-    elif prog_professional in ['senior', 'lead'] or game_professional in ['senior', 'lead']:
-        expertise_indicators += 2
-    elif prog_professional in ['mid'] or game_professional in ['mid']:
-        expertise_indicators += 1
+    # 1. Professional context (avoid double-scoring)
+    if prog_professional or game_professional:
+        # Score based on professional position
+        if prog_professional in ['lead'] or game_professional in ['lead']:
+            expertise_indicators += 3
+        elif prog_professional in ['senior'] or game_professional in ['senior']:
+            expertise_indicators += 2.5
+        elif prog_professional in ['mid'] or game_professional in ['mid']:
+            expertise_indicators += 2
+        elif prog_professional in ['junior'] or game_professional in ['junior']:
+            expertise_indicators += 1.5
+    else:
+        # Score based on experience level if no professional position
+        if prog_level == 'professional' or game_level == 'professional':
+            expertise_indicators += 2
+        elif prog_level == 'advanced' or game_level == 'advanced':
+            expertise_indicators += 1.5
+        elif prog_level == 'moderate' or game_level == 'moderate':
+            expertise_indicators += 1
         
     # 2. Tool-specific knowledge (research: better predictor than general experience)
     if 'javascript' in languages:
@@ -136,39 +132,7 @@ def categorize_expertise_from_existing_survey(survey_data):
     elif len(languages) >= 3:
         expertise_indicators += 1  # Good breadth
         
-    # 3. Domain expertise
-    if game_level in ['advanced', 'professional']:
-        expertise_indicators += 2
-    elif game_level == 'moderate':
-        expertise_indicators += 1
-        
-    # 4. Programming competence
-    if prog_level in ['advanced', 'professional']:
-        expertise_indicators += 2
-    elif prog_level == 'moderate':
-        expertise_indicators += 1
-        
-    # 5. Educational background (new scoring)
-    # Graduate degree holders
-    if degree_highest == 'phd':
-        expertise_indicators += 2
-    elif degree_highest == 'masters':
-        expertise_indicators += 1.5
-    elif degree_highest == 'undergraduate':
-        expertise_indicators += 1
-    
-    # Current students
-    if is_student:
-        if degree_current == 'phd':
-            expertise_indicators += 1.5
-        elif degree_current == 'masters':
-            expertise_indicators += 1
-        elif degree_current == 'undergraduate':
-            # Consider year level
-            if undergrad_year in ['3', '4']:
-                expertise_indicators += 0.5
-    
-    # Course programming experience
+    # 3. Course programming experience (actual relevant learning)
     if 'large_projects' in course_prog_exp:
         expertise_indicators += 1.5
     elif 'advanced_modules' in course_prog_exp:
@@ -176,7 +140,7 @@ def categorize_expertise_from_existing_survey(survey_data):
     elif 'intro_modules' in course_prog_exp:
         expertise_indicators += 0.5
     
-    # Self-taught experience (shows initiative and practical skills)
+    # 4. Self-taught experience (shows initiative and practical skills)
     if 'released_app' in self_taught_exp:
         expertise_indicators += 2  # Very strong indicator
     elif 'spare_time_projects' in self_taught_exp:
@@ -184,7 +148,7 @@ def categorize_expertise_from_existing_survey(survey_data):
     elif 'intro_tutorials' in self_taught_exp:
         expertise_indicators += 0.5
     
-    # 6. Experience years (research: weak predictor, so minimal weight)
+    # 5. Experience years (research: weak predictor, so minimal weight)
     max_years = max(prog_years, game_years)
     if max_years >= 10:
         expertise_indicators += 1.5
@@ -193,15 +157,16 @@ def categorize_expertise_from_existing_survey(survey_data):
     elif max_years >= 2:
         expertise_indicators += 0.5
     
-    # 7. Game engine experience
+    # 6. Game engine experience
     if len(engines) >= 3:
         expertise_indicators += 1
     elif len(engines) >= 1 and 'none' not in engines:
         expertise_indicators += 0.5
     
-    if expertise_indicators >= 8:
+    # Research-informed categorization
+    if expertise_indicators >= 7:
         return 'high'
-    elif expertise_indicators >= 4:
+    elif expertise_indicators >= 3.5:
         return 'medium'
     else:
         return 'low'

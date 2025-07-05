@@ -475,6 +475,7 @@ def submit_survey():
         degree_level_highest = request.form.get('degree_level_highest')
         course_programming_experience = request.form.getlist('course_programming_experience')
         undergrad_year = request.form.get('undergrad_year')
+        course_related = request.form.get('course_related') == 'yes'
 
         # Save to database with session tracking
         survey_data = Survey(
@@ -501,6 +502,7 @@ def submit_survey():
             degree_level_current=degree_level_current,
             degree_level_highest=degree_level_highest,
             course_programming_experience=json.dumps(course_programming_experience) if course_programming_experience else '',
+            course_related=course_related,
             undergrad_year=undergrad_year,
             submitted_at=datetime.now(),
             description=request.form.get('description', '')
@@ -520,6 +522,7 @@ def submit_survey():
         if not is_development_mode():
             db.session.add(user)
             db.session.commit()
+            survey_data.user_id = user.id  # Link survey data to user
             db.session.add(survey_data)
             db.session.commit()
         else:
@@ -589,29 +592,6 @@ def init_database():
         </body>
         </html>
         """, 500
-
-@application.route("/test-db")
-def test_database():
-    """Test database connection"""
-    try:
-        # Test basic connection
-        result = db.session.execute('SELECT 1')
-        
-        # Test if tables exist
-        inspector = inspect(db.engine)
-        tables = inspector.get_table_names()
-        
-        return jsonify({
-            "success": True,
-            "message": "Database connection successful",
-            "tables": tables,
-            "table_count": len(tables)
-        })
-    except Exception as e:
-        return jsonify({
-            "success": False,
-            "error": str(e)
-        }), 500
 
 @application.route("/tutorial")
 def tutorial():

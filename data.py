@@ -85,6 +85,7 @@ class Survey(db.Model):
     degree_level_highest = db.Column(db.String(50))
     course_programming_experience = db.Column(db.Text)  # JSON string of selected course programming experiences
     undergrad_year = db.Column(db.String(10))
+    course_related = db.Column(db.Boolean, default=False)  # Whether the course is related to CS or Game Dev
     
     description = db.Column(db.String(1000))
 

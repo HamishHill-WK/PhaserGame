@@ -141,30 +141,40 @@
                     </select>
                 </div>
 
-                <div class="question-group" id="course-programming-experience-group" style="display: {% if form_data and (form_data.is_student or form_data.is_graduate) %}block{% else %}none{% endif %};">
-                    <label>During your course, which of the following apply? (Select all that apply)</label>
-                    <div>
-                        <label>
-                            <input type="checkbox" name="course_programming_experience" value="intro_modules"
-                                {% if form_data and 'intro_modules' in (form_data.course_programming_experience or []) %}checked{% endif %}>
-                            I completed a small number of introductory programming modules as part of my course
-                        </label>
-                    </div>
-                    <div>
-                        <label>
-                            <input type="checkbox" name="course_programming_experience" value="advanced_modules"
-                                {% if form_data and 'advanced_modules' in (form_data.course_programming_experience or []) %}checked{% endif %}>
-                            I completed several programming modules which covered theory and implementation of advanced programming concepts.
-                        </label>
-                    </div>
-                    <div>
-                        <label>
-                            <input type="checkbox" name="course_programming_experience" value="large_projects"
-                                {% if form_data and 'large_projects' in (form_data.course_programming_experience or []) %}checked{% endif %}>
-                            I produced several large programming projects as part of my course
-                        </label>
+                <div class="question-group" id="course-related-group" style="display: none; margin-top: 12px;">
+                    <label>Is/was your course in Computer Science, Game Development, or a related subject?</label>
+                    <div class="radio-group">
+                        <input type="radio" name="course_related" value="yes" id="course_related_yes">
+                        <label for="course_related_yes">Yes</label>
+                        <input type="radio" name="course_related" value="no" id="course_related_no" style="margin-left: 24px;">
+                        <label for="course_related_no">No</label>
                     </div>
                 </div>
+
+            <div class="question-group" id="course-programming-experience-group" style="display: {% if form_data and (form_data.is_student or form_data.is_graduate) %}block{% else %}none{% endif %};">
+                <label>During your course, which of the following apply? (Select all that apply)</label>
+                <div>
+                    <label>
+                        <input type="checkbox" name="course_programming_experience" value="intro_modules"
+                            {% if form_data and 'intro_modules' in (form_data.course_programming_experience or []) %}checked{% endif %}>
+                        I completed a small number of introductory programming modules as part of my course
+                    </label>
+                </div>
+                <div>
+                    <label>
+                        <input type="checkbox" name="course_programming_experience" value="advanced_modules"
+                            {% if form_data and 'advanced_modules' in (form_data.course_programming_experience or []) %}checked{% endif %}>
+                        I completed several programming modules which covered theory and implementation of advanced programming concepts.
+                    </label>
+                </div>
+                <div>
+                    <label>
+                        <input type="checkbox" name="course_programming_experience" value="large_projects"
+                            {% if form_data and 'large_projects' in (form_data.course_programming_experience or []) %}checked{% endif %}>
+                        I produced several large programming projects as part of my course
+                    </label>
+                </div>
+            </div>
 
                 <div class="question-group" id="undergrad-year-group" style="display: {% if form_data and form_data.degree_level_current == 'undergraduate' %}block{% else %}none{% endif %};">
                     <label for="undergrad_year">If undergraduate, what year of your course are you in?</label>

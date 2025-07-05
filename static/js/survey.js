@@ -172,3 +172,21 @@ document.addEventListener('DOMContentLoaded', function() {
     setupWordCountLimit('ai_usage_details', 'ai_usage_details_count', 100);
     setupWordCountLimit('description', 'description_count', 100);
 });
+
+function toggleCourseRelated() {
+    const isStudent = document.getElementById('is_student').checked;
+    const isGraduate = document.getElementById('is_graduate').checked;
+    const courseRelatedGroup = document.getElementById('course-related-group');
+    if (isStudent || isGraduate) {
+        courseRelatedGroup.style.display = 'block';
+    } else {
+        courseRelatedGroup.style.display = 'none';
+        // Optionally clear selection
+        const radios = courseRelatedGroup.querySelectorAll('input[type="radio"]');
+        radios.forEach(r => r.checked = false);
+    }
+}
+
+document.getElementById('is_student').addEventListener('change', toggleCourseRelated);
+document.getElementById('is_graduate').addEventListener('change', toggleCourseRelated);
+document.addEventListener('DOMContentLoaded', toggleCourseRelated);
