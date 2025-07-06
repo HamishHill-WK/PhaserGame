@@ -198,13 +198,15 @@
 
 .llm-response {
     background-color: #f3e5f5;
-    color: #7b1fa2;
-    padding: 8px 12px;
-    margin: 4px 0;
+    color: #4a148c;
+    padding: 12px 16px;
+    margin: 6px 0;
     border-radius: 8px;
     border-left: 4px solid #7b1fa2;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-wrap: break-word;
 }
-
 .llm-code{
     background-color: #e8f5e9;
     color: #2e7d32;
@@ -236,6 +238,3 @@
     font-family: monospace;
     white-space: pre-wrap;
 }
-
-
-

@@ -245,16 +245,19 @@ def LLMrequest():
         context = data.get("context", [])
         print(f"Application.py: Context received: {context}")
         user_message = data.get("input", "")
-        
+        extended_thinking = data.get("extended_thinking", False)
         # Get or create session ID
         session_id = session.get('session_id', f"session_{uuid.uuid4().hex[:12]}")
         if 'session_id' not in session:
             session['session_id'] = session_id
-        
         # Get user_id from session for tracking
         user_id = session.get('user_id')
-        
-        response = assistant.get_response(context, user_message, session_id, user_id)
+        # Ensure session ID is set  
+        response = ""
+        if extended_thinking:
+            response = assistant.get_react_response(context, user_message, session_id, user_id)
+        else:
+            response = assistant.get_llm_response(context, user_message, session_id, user_id)
         
         # Save user message and LLM response to ExperimentData
         if user_id:
@@ -266,22 +269,19 @@ def LLMrequest():
                 timestamp=datetime.now(),
                 data=json.dumps({
                     "user_message": user_message,
-                    "llm_response": getattr(response, 'output_text', str(response))
+                    "llm_response": getattr(response, 'output_text', str(response)),
+                    "extended_thinking": extended_thinking
                 })
             ))
             db.session.commit()
-        
         # Track last AI usage in session
         session['last_ai_usage'] = datetime.now().isoformat()
-        
         response_segments = {}
-        
         # Extract code between triple backticks if present
         if "```" in response.output_text:
             # Find all code blocks
             code_blocks = []
             parts = response.output_text.split("```")
-            
             for i, p in enumerate(parts):
                 print(f"\n\nApplication.py: Part {i}: {p}\n\n")
                 if "javascript" in p:
@@ -298,7 +298,6 @@ def LLMrequest():
                 else:
                     # Otherwise, it's just a regular text segment
                     response_segments[i] = ["text", p.strip()]
-            
             # If we found code blocks, update the response
             if code_blocks:
                 response = {
@@ -308,9 +307,7 @@ def LLMrequest():
         else:
             # If no code blocks, just return the text response
             response_segments[0] = ["text", response.output_text]
-                
         reponse_list = list(response_segments.values())
-        
         return jsonify(reponse_list)
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
