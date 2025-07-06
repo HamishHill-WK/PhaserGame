@@ -3,66 +3,6 @@
 <head>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.24.1/ace.js"></script>
-    <style>
-    /* ...existing styles... */
-    #game-section {
-        display: flex;
-        flex-direction: row;
-        align-items: flex-start;
-        gap: 32px;
-    }
-    #debug-console-output {
-        max-width: 480px;
-        width: 100%;
-        margin: 0 auto 0 0;
-    }
-    #static-asset-list {
-        min-width: 180px;
-        max-width: 220px;
-        background: #fafbfc;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-        padding: 12px 10px 12px 10px;
-        margin-left: 0;
-        margin-top: 0;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-    }
-    .static-asset-item {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 6px 0;
-        border-bottom: 1px solid #f0f0f0;
-    }
-    .static-asset-item:last-child {
-        border-bottom: none;
-    }
-    .static-asset-thumb {
-        width: 32px;
-        height: auto;
-        border-radius: 4px;
-        background: #fff;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.07);
-    }
-    .static-asset-label {
-        font-size: 0.98em;
-        color: #333;
-        word-break: break-all;
-    }
-    @media (max-width: 600px) {
-        #debug-console-output, #debug-console {
-            max-width: 100vw;
-        }
-    }
-    .task-completed {
-        background: #e6ffe6 !important;
-        border-left: 6px solid #28a745 !important;
-        opacity: 0.85;
-        transition: background 0.2s, border 0.2s, opacity 0.2s;
-    }
-    </style>
 </head>
 <body>   
     
@@ -79,9 +19,20 @@
                     <div id="debug-console"></div>
                 </div>
             </div>
-            <div id="static-asset-list">
-                <div style="font-weight:600; margin-bottom:8px; font-size:1.08em; color:#222;">Assets</div>
-                <div id="static-asset-list-items"></div>
+            <div id= "resources">
+                <div id="static-asset-list">
+                    <div style="font-weight:600; margin-bottom:8px; font-size:1.08em; color:#222;">Assets</div>
+                    <div id="static-asset-list-items"></div>
+                </div>
+                <div class="documentation-notice">
+                    <h4>Documentation Access</h4>
+                    <p>You may access the following official documentation during the experiment:</p>
+                    <ul>
+                        <li><a href="https://phaser.io/docs" target="_blank">Phaser 3 API Documentation</a></li>
+                        <li><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript" target="_blank">MDN JavaScript Reference</a></li>
+                    </ul>
+                    <p><em>Please stay focused on the task and avoid browsing unrelated content.</em></p>
+                </div>
             </div>
         </div>
           <div class="editor-container">
@@ -171,12 +122,15 @@
                 </div>
             </div>            <div class="tab-content hidden" id="editor"></div>
             <div class="console-container tab-content" id="console-container">
-                <div class="console-output" id="console-output"></div>
-                    <form id="input-form">
-                        <textarea type="text" id="user-input" placeholder="Enter your command" autocomplete="off"></textarea>
-                        <button class="tab-button" id="submit-button" type="submit">Send</button>
-                    </form>
+                <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                    <input type="checkbox" id="extended-thinking-checkbox" style="margin-right: 6px;">
+                    <label for="extended-thinking-checkbox" style="margin: 0; font-weight: 500;">Enable Extended Thinking (AI will take more time to reason)</label>
                 </div>
+                <div class="console-output" id="console-output"></div>
+                <form id="input-form">
+                    <textarea type="text" id="user-input" placeholder="Enter your command" autocomplete="off"></textarea>
+                    <button class="tab-button" id="submit-button" type="submit">Send</button>
+                </form>
             </div>
         </div>
     </div>
@@ -185,7 +139,7 @@
             <div style="background:#fff; padding:32px; border-radius:8px; max-width:400px; margin:auto; text-align:center;">
                 <p id="finish-modal-message">You have not completed all tasks. Are you sure you want to finish the experiment early?</p>
                 <button id="proceed-debrief-btn" class="tab-button">Proceed to Debrief</button>
-                <button id="continue-experiment-btn" class="tab-button">Continue Experiment</button>
+                <button id="continue-experiment-btn" class="tab-button">Return to Experiment</button>
             </div>
         </div>   
         <script>

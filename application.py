@@ -5,37 +5,26 @@ from datetime import datetime
 import assistant
 import secval
 import uuid
-from data import db, Survey, ExperimentData, User, configure_database, is_development_mode, TaskCheck
+from data import db, Survey, ExperimentData, User, configure_database, is_development_mode, TaskCheck, CodeChange
 from dotenv import load_dotenv 
-import random
 import difflib
 from dateutil.parser import isoparse
 import traceback
 from sqlalchemy import inspect
-import psycopg2
 from urllib.parse import urlparse
 import traceback
-import subprocess
-import socket
+from application_helper import is_development_mode, assign_balanced_condition, get_int_user_id, categorize_expertise_from_existing_survey, count_js_errors
 load_dotenv()
 
 validator = secval.SimpleSecurityValidator()
-
 application = Flask(__name__)
 application.secret_key = os.environ.get("SECRET_KEY", "your_secret_key")
 
-# IMPORTANT: Initialize database with Flask app
 try:
     configure_database(application)
     print("Database configured successfully!")
 except Exception as e:
     print(f"Error configuring database: {e}")
-
-def is_development_mode():
-    """Return True if FLASK_ENV is set to 'development'."""
-    return os.environ.get('FLASK_ENV', '').lower() == 'development'
-
-errors = []
 
 @application.route("/gameAIassistant", methods=["GET", "POST"])
 def gameAIassistant():
@@ -71,34 +60,6 @@ def index():
         participant_code = session['participant_code']
     return render_template('index.html', participant_code=participant_code)
 
-def assign_balanced_condition():
-    """
-    Assign participant to AI or Control condition based on current balance.
-    Returns: 'ai' or 'control'
-    """
-    try:
-        # Count current assignments
-        ai_count = User.query.filter_by(assigned_condition='ai', consent_participate=True).count()
-        control_count = User.query.filter_by(assigned_condition='control', consent_participate=True).count()
-        total_count = ai_count + control_count
-        print(f"Current balance - AI: {ai_count}, Control: {control_count}")
-        # If no participants yet, assign first to 'ai'
-        if total_count == 0:
-            assigned_condition = 'ai'
-        elif ai_count < control_count:
-            assigned_condition = 'ai'
-        elif control_count < ai_count:
-            assigned_condition = 'control'
-        else:
-            # Equal numbers - randomly assign
-            assigned_condition = random.choice(['ai', 'control'])
-        print(f"Assigned condition: {assigned_condition}")
-        return assigned_condition
-    except Exception as e:
-        print(f"Error in condition assignment: {e}")
-        # Fallback to random assignment
-        return random.choice(['ai', 'control'])
-
 # Add the survey route
 @application.route("/opensurvey", methods=["GET", "POST"])
 def opensurvey():
@@ -120,22 +81,13 @@ def survey():
     
     return render_template('survey.html', session_id=session_id)
 
-def get_int_user_id():
-    user_id = session.get('user_id')
-    if user_id is None:
-        return None
-    try:
-        return int(user_id)
-    except (ValueError, TypeError):
-        return None
-
 @application.route("/save-code", methods=["POST"])
 def save_code():
     try:
         data = request.get_json()
         code = data.get("code")
         session_id = session.get('session_id', 'unknown')
-        user_id = get_int_user_id()
+        user_id = get_int_user_id(session)
         
         # Should be:
         validation_result = validator.validate(code)
@@ -147,7 +99,6 @@ def save_code():
             return jsonify({"success": False, "error": f"Security violation: {'; '.join(violation_messages)}"})
         
         code_lines = code.split('\n')
-
         file_name = data.get("file")
         
         # Validate file name to prevent directory traversal
@@ -164,8 +115,13 @@ def save_code():
             with open(user_file_path, "r", encoding="utf-8") as f:
                 prev_code = f.read()
         prev_lines = prev_code.split('\n') if prev_code else []
-        diff = list(difflib.unified_diff(prev_lines, code_lines, lineterm=''))
-        # --- Check if AI assistant was used since last save ---
+        diff = list(difflib.unified_diff(prev_lines, code_lines, lineterm=''))        
+        last_error_count = session.get('error_count', 0)
+        
+        error_count = count_js_errors(code) or 0
+        if error_count != 0:
+            session['error_count'] = error_count
+
         last_ai_usage = session.get('last_ai_usage')
         last_code_save = session.get('last_code_save')
         used_ai = False
@@ -181,19 +137,29 @@ def save_code():
                 used_ai = False
         # Only log if there are changes
         if user_id and diff:
-            experiment_data = ExperimentData(
-                session_id=session_id,
+            # Log code change to CodeChange table
+            # Get previous and new code as strings
+            prev_code_str = '\n'.join(prev_lines)
+            new_code_str = code
+            # Calculate line changes
+            lines_changed = len(diff)
+            lines_added = sum(1 for d in diff if d.startswith('+') and not d.startswith('+++'))
+            lines_removed = sum(1 for d in diff if d.startswith('-') and not d.startswith('---'))
+            # Optionally, you could track errors_before/errors_after if available
+            code_change = CodeChange(
                 user_id=user_id,
-                user_action="code_change",
-                timestamp=datetime.now(),
-                data=json.dumps({
-                    "file_name": file_name,
-                    "diff": diff,
-                    "used_ai_assistant_since_last_save": used_ai
-                })
+                participant_code=session.get('participant_code', 'unknown'),
+                code_before=prev_code_str,
+                code_after=new_code_str,
+                lines_changed=lines_changed,
+                lines_added=lines_added,
+                lines_removed=lines_removed,
+                errors_before=last_error_count,
+                errors_after=error_count,
+                timestamp=datetime.now()
             )
             if not is_development_mode():
-                db.session.add(experiment_data)
+                db.session.add(code_change)
                 db.session.commit()
             else:
                 print("[DEV] Skipping DB commit for code_change (development mode)")
@@ -207,6 +173,7 @@ def save_code():
             experiment_data = ExperimentData(
                 session_id=session_id,
                 user_id=user_id,
+                participant_code=session.get('participant_code', 'unknown'),
                 user_action="code_save",
                 timestamp=datetime.now(),
                 data=json.dumps({
@@ -238,20 +205,10 @@ def log_error():
         
         # Get session ID and user ID for tracking
         session_id = session.get('session_id', 'unknown')
-        user_id = get_int_user_id()
+        user_id = get_int_user_id(session)
 
         # Generate a unique error code
         error_id = f"ERR-{uuid.uuid4().hex[:8]}"
-
-        # Add error_id to the error data
-        data["error_id"] = error_id
-        
-        # Log the error message
-        errors.append({
-            "error_id": error_id,
-            "message": error_message,
-            "timestamp": datetime.now().isoformat()
-        })
         
         # Log error to experiment data for research tracking
         if user_id:
@@ -259,6 +216,7 @@ def log_error():
                 session_id=session_id,
                 user_id=user_id,
                 user_action="code_error",
+                participant_code=session.get('participant_code', 'unknown'),
                 timestamp=datetime.now(),
                 data=json.dumps({
                     "error_id": error_id,
@@ -285,42 +243,43 @@ def LLMrequest():
         context = data.get("context", [])
         print(f"Application.py: Context received: {context}")
         user_message = data.get("input", "")
-        
+        extended_thinking = data.get("extended_thinking", False)
         # Get or create session ID
         session_id = session.get('session_id', f"session_{uuid.uuid4().hex[:12]}")
         if 'session_id' not in session:
             session['session_id'] = session_id
-        
         # Get user_id from session for tracking
         user_id = session.get('user_id')
-        
-        response = assistant.get_response(context, user_message, session_id, user_id)
+        # Ensure session ID is set  
+        response = ""
+        if extended_thinking:
+            response = assistant.get_react_response(context, user_message, session_id, user_id)
+        else:
+            response = assistant.get_llm_response(context, user_message, session_id, user_id)
         
         # Save user message and LLM response to ExperimentData
         if user_id:
             db.session.add(ExperimentData(
                 session_id=session_id,
                 user_id=user_id,
+                participant_code=session.get('participant_code', 'unknown'),
                 user_action="llm_message",
                 timestamp=datetime.now(),
                 data=json.dumps({
                     "user_message": user_message,
-                    "llm_response": getattr(response, 'output_text', str(response))
+                    "llm_response": getattr(response, 'output_text', str(response)),
+                    "extended_thinking": extended_thinking
                 })
             ))
             db.session.commit()
-        
         # Track last AI usage in session
         session['last_ai_usage'] = datetime.now().isoformat()
-        
         response_segments = {}
-        
         # Extract code between triple backticks if present
         if "```" in response.output_text:
             # Find all code blocks
             code_blocks = []
             parts = response.output_text.split("```")
-            
             for i, p in enumerate(parts):
                 print(f"\n\nApplication.py: Part {i}: {p}\n\n")
                 if "javascript" in p:
@@ -337,7 +296,6 @@ def LLMrequest():
                 else:
                     # Otherwise, it's just a regular text segment
                     response_segments[i] = ["text", p.strip()]
-            
             # If we found code blocks, update the response
             if code_blocks:
                 response = {
@@ -347,44 +305,8 @@ def LLMrequest():
         else:
             # If no code blocks, just return the text response
             response_segments[0] = ["text", response.output_text]
-                
         reponse_list = list(response_segments.values())
-        
         return jsonify(reponse_list)
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)})
-
-@application.route("/save-final-game-code", methods=["POST"])
-def save_final_game_code():
-    """Save the user's final game.js script to the database at experiment completion."""
-    try:
-        session_id = session.get('session_id', 'unknown')
-        user_id = get_int_user_id()
-        if not user_id:
-            return jsonify({"success": False, "error": "No user_id in session"}), 400
-        user_file_path = os.path.join(application.static_folder, "js", "users", f"game_{session_id}.js")
-        if not os.path.exists(user_file_path):
-            return jsonify({"success": False, "error": "User game.js file not found"}), 404
-        with open(user_file_path, "r", encoding="utf-8") as f:
-            code = f.read()
-        experiment_data = ExperimentData(
-            session_id=session_id,
-            user_id=user_id,
-            user_action="final_code_save",
-            timestamp=datetime.now(),
-            data=json.dumps({
-                "file_name": f"game_{session_id}.js",
-                "final_code": code,
-                "code_length": len(code),
-                "lines_count": len(code.split('\n'))
-            })
-        )
-        if not is_development_mode():
-            db.session.add(experiment_data)
-            db.session.commit()
-        else:
-            print("[DEV] Skipping DB commit for final_code_save (development mode)")
-        return jsonify({"success": True})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
@@ -392,7 +314,7 @@ def save_final_game_code():
 def debrief():
     # Track experiment completion
     session_id = session.get('session_id', 'unknown')
-    user_id = get_int_user_id()
+    user_id = get_int_user_id(session)
 
     # Save final game.js code to DB at experiment completion
     if user_id:
@@ -458,6 +380,40 @@ def clear_session():
         return jsonify({"success": True, "message": "Session cleared"})
     return jsonify({"success": False, "error": "No active session"})
 
+@application.route("/save-final-game-code", methods=["POST"])
+def save_final_game_code():
+    """Save the user's final game.js script to the database at experiment completion."""
+    try:
+        session_id = session.get('session_id', 'unknown')
+        user_id = get_int_user_id()
+        if not user_id:
+            return jsonify({"success": False, "error": "No user_id in session"}), 400
+        user_file_path = os.path.join(application.static_folder, "js", "users", f"game_{session_id}.js")
+        if not os.path.exists(user_file_path):
+            return jsonify({"success": False, "error": "User game.js file not found"}), 404
+        with open(user_file_path, "r", encoding="utf-8") as f:
+            code = f.read()
+        experiment_data = ExperimentData(
+            session_id=session_id,
+            user_id=user_id,
+            user_action="final_code_save",
+            timestamp=datetime.now(),
+            data=json.dumps({
+                "file_name": f"game_{session_id}.js",
+                "final_code": code,
+                "code_length": len(code),
+                "lines_count": len(code.split('\n'))
+            })
+        )
+        if not is_development_mode():
+            db.session.add(experiment_data)
+            db.session.commit()
+        else:
+            print("[DEV] Skipping DB commit for final_code_save (development mode)")
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
 @application.route("/get-user-game-code", methods=["GET"])
 def get_user_game_code():
     """Get user-specific game code"""
@@ -488,47 +444,84 @@ def get_user_game_code():
 def submit_survey():
     try:
         session_id = session.get('session_id', 'unknown')
-        user_id = get_int_user_id()  # Get anonymous user ID from consent
-        print(f"Session ID: {session_id}, User ID: {user_id}")
-        # Remove consent requirement: allow to proceed regardless of user_id
-        # Get form data
-        game_dev_experience_description = request.form.get('gamedev_details')
+        anon_user = session.get('anonymous_user', {})
+        participant_code = anon_user.get('participant_code')
+        signed_date = anon_user.get('signed_date')
+
         game_dev_experience_level = request.form.get('game_dev_experience_detailed')
         game_dev_proffessional_level = request.form.get('gamedev_position')
         game_dev_experience_years = request.form.get('gamedev_years', type=float)
-        game_engines = request.form.getlist('engines')  # Multiple selections
+        game_engines = request.form.getlist('engines')
+        
         programming_experience_level = request.form.get('programming_experience_detailed')
         programming_proffessional_level = request.form.get('programming_position')
-        programming_experience_description = request.form.get('programming_details')
         programming_experience_years = request.form.get('programming_years', type=float)
-        programming_languages = request.form.getlist('languages')  # Multiple selections
+        programming_languages = request.form.getlist('languages')
+        
         used_phaser = request.form.get('used_phaser') == 'yes'
-        phaser_experience_description = request.form.get('phaser_details', '')  # Additional details
+        phaser_experience_description = request.form.get('phaser_details', '')
         uses_ai_tools = request.form.get('uses_ai_tools') == 'yes'
         ai_usage_details = request.form.getlist('ai_usage')
-        ai_usage_description = request.form.get('ai_usage_details', '')  # Additional details
+        ai_usage_description = request.form.get('ai_usage_details', '')
+        experience_description = request.form.get('experience_details', '')
+
+        # Student/graduate/self-taught fields
+        is_student = bool(request.form.get('is_student'))
+        is_graduate = bool(request.form.get('is_graduate'))
+        is_self_taught = bool(request.form.get('is_self_taught'))
+        self_taught_experience = request.form.getlist('self_taught_experience')
+        degree_level_current = request.form.get('degree_level_current')
+        degree_level_highest = request.form.get('degree_level_highest')
+        course_programming_experience = request.form.getlist('course_programming_experience')
+        undergrad_year = request.form.get('undergrad_year')
+        course_related = request.form.get('course_related') == 'yes'
+
         # Save to database with session tracking
         survey_data = Survey(
             session_id=session_id,
-            user_id=user_id,  # Link to anonymous user from consent if available
-            game_dev_experience_description=game_dev_experience_description,
+            participant_code=participant_code,
             game_dev_experience_level=game_dev_experience_level,
             game_dev_proffessional_level=game_dev_proffessional_level,
             game_dev_experience_years=game_dev_experience_years,
-            game_engines=json.dumps(game_engines) if game_engines else '',  # Convert
-            programming_experience_description=programming_experience_description,
+            game_engines=json.dumps(game_engines) if game_engines else '',
             programming_experience_years=programming_experience_years,
             programming_experience_level=programming_experience_level,
             programming_proffessional_level=programming_proffessional_level,
-            programming_languages=json.dumps(programming_languages) if programming_languages else '',  # Store as JSON string            
+            programming_languages=json.dumps(programming_languages) if programming_languages else '',
             used_phaser=used_phaser,
             phaser_experience_description=phaser_experience_description,
             uses_ai_tools=uses_ai_tools,
-            ai_usage_details=ai_usage_details,
+            ai_usage_details=json.dumps(ai_usage_details) if ai_usage_details else '',
             ai_tools_description=ai_usage_description,
-            submitted_at=datetime.now()
+            experience_description=experience_description,
+            is_student=is_student,
+            is_graduate=is_graduate,
+            is_self_taught=is_self_taught,
+            self_taught_experience=json.dumps(self_taught_experience) if self_taught_experience else '',
+            degree_level_current=degree_level_current,
+            degree_level_highest=degree_level_highest,
+            course_programming_experience=json.dumps(course_programming_experience) if course_programming_experience else '',
+            course_related=course_related,
+            undergrad_year=undergrad_year,
+            submitted_at=datetime.now(),
+            description=request.form.get('description', '')
         )
+        
+        expertise = categorize_expertise_from_existing_survey(survey_data)
+        assigned_condition = assign_balanced_condition(User, expertise)
+
+        # Create the user in the database
+        user = User(
+            participant_code=participant_code,
+            assigned_condition=assigned_condition,
+            expertise_level=expertise,
+            signed_date=signed_date
+            )
+        
         if not is_development_mode():
+            db.session.add(user)
+            db.session.commit()
+            survey_data.user_id = user.id  # Link survey data to user
             db.session.add(survey_data)
             db.session.commit()
         else:
@@ -553,36 +546,17 @@ def log_consent():
     """Log consent decision with session tracking and create user in DB here"""
     try:
         print("Logging consent...")
-        session_id = session.get('session_id', 'unknown')
-        consent_participate = request.form.get('consent_participate', False)
-        if consent_participate == 'yes':
-            consent_participate = True
-        consent_data = request.form.get('consent_data', False)
-        if consent_data == 'yes':
-            consent_data = True
-        user_name = request.form.get('signature', '')
         signed_date_form = request.form.get('date', datetime.now().isoformat())
-        # Use participant_code from session if available
         participant_code_val = session.get('participant_code')
         if not participant_code_val:
             participant_code_val = f"P{uuid.uuid4().hex[:8].upper()}"
             session['participant_code'] = participant_code_val
-        anonymous_user = User(
-            signed=user_name,
-            consent_data=consent_data,
-            consent_participate=consent_participate,
-            participant_code=participant_code_val,  # Use session participant code
-            signed_date=signed_date_form
-        )
-        # Only commit to DB if not in development mode
-        if not is_development_mode():
-            db.session.add(anonymous_user)
-            db.session.flush()  # Get the user ID without committing
-            session['user_id'] = anonymous_user.id  # Store integer ID
-            db.session.commit()  # Now commit
-        else:
-            print("[DEV] Skipping DB commit for anonymous user (development mode)")
-            session['user_id'] = None
+        # Store the user object in the session for use on the survey page
+        session['anonymous_user'] = {
+            'participant_code': participant_code_val,
+            'signed_date': signed_date_form
+        }
+        session['user_id'] = None
         return redirect(url_for('survey'))
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
@@ -618,113 +592,6 @@ def init_database():
         </html>
         """, 500
 
-@application.route("/test-db")
-def test_database():
-    """Test database connection"""
-    try:
-        # Test basic connection
-        result = db.session.execute('SELECT 1')
-        
-        # Test if tables exist
-        inspector = inspect(db.engine)
-        tables = inspector.get_table_names()
-        
-        return jsonify({
-            "success": True,
-            "message": "Database connection successful",
-            "tables": tables,
-            "table_count": len(tables)
-        })
-    except Exception as e:
-        return jsonify({
-            "success": False,
-            "error": str(e)
-        }), 500
-
-@application.route("/test-basic-connection")
-def test_basic_connection():
-    """Test the most basic database connection"""
-    try:
-
-        # Get the database URI
-        uri = application.config.get('SQLALCHEMY_DATABASE_URI')
-        if not uri:
-            return " No database URI configured", 500
-        
-        # Parse the URI
-        parsed = urlparse(uri)
-        
-        connection_info = {
-            'host': parsed.hostname,
-            'port': parsed.port or 5432,
-            'database': parsed.path[1:] if parsed.path else 'postgres',
-            'user': parsed.username,
-            'password_set': bool(parsed.password)
-        }
-        
-        # Try to connect with psycopg2 directly
-        conn = psycopg2.connect(
-            host=connection_info['host'],
-            port=connection_info['port'],
-            database=connection_info['database'],
-            user=connection_info['user'],
-            password=parsed.password,
-            connect_timeout=10,
-            sslmode='require'
-        )
-        
-        # Test the connection
-        cursor = conn.cursor()
-        cursor.execute('SELECT version()')
-        version = cursor.fetchone()[0]
-        cursor.close()
-        conn.close()
-        
-        return f"""
-        <html>
-        <head><title>Connection Test</title></head>
-        <body>
-            <h1>Database Connection Successful!</h1>
-            <h2>Connection Details:</h2>
-            <ul>
-                <li><strong>Host:</strong> {connection_info['host']}</li>
-                <li><strong>Port:</strong> {connection_info['port']}</li>
-                <li><strong>Database:</strong> {connection_info['database']}</li>
-                <li><strong>User:</strong> {connection_info['user']}</li>
-                <li><strong>Password Set:</strong> {connection_info['password_set']}</li>
-            </ul>
-            <h2>Database Version:</h2>
-            <p>{version}</p>
-            
-            <br>
-            <a href="/init-db-safe">Try Safe Database Init</a>
-        </body>
-        </html>
-        """
-        
-    except Exception as e:
-        error_details = traceback.format_exc()
-        
-        return f"""
-        <html>
-        <head><title>Connection Failed</title></head>
-        <body>
-            <h1>Database Connection Failed</h1>
-            <h2>Error:</h2>
-            <p>{str(e)}</p>
-            <h2>Full Error Details:</h2>
-            <pre>{error_details}</pre>
-            
-            <h2>Troubleshooting:</h2>
-            <ul>
-                <li>Check if database is configured in EB Console</li>
-                <li>Verify security groups allow connections</li>
-                <li>Ensure database is in same VPC as EB environment</li>
-            </ul>
-        </body>
-        </html>
-        """, 500
-
 @application.route("/tutorial")
 def tutorial():
     return render_template('tutorial.html')
@@ -738,7 +605,6 @@ def log_task_check():
     try:
         data = request.get_json()
         task_id = data.get('task_id')
-        checked = bool(data.get('checked'))
         user_id = session.get('user_id')
         session_id = session.get('session_id', 'unknown')
         if not user_id:
@@ -746,8 +612,8 @@ def log_task_check():
         task_check = TaskCheck(
             user_id=user_id,
             session_id=session_id,
+            participant_code=session.get('participant_code', 'unknown'),
             task_id=task_id,
-            checked=checked
         )
         db.session.add(task_check)
         db.session.commit()
@@ -760,11 +626,12 @@ def log_game_reload():
     """Log when the user reloads the game window."""
     try:
         session_id = session.get('session_id', 'unknown')
-        user_id = get_int_user_id()
+        user_id = get_int_user_id(session)
         timestamp = datetime.now()
         db_entry = ExperimentData(
             session_id=session_id,
             user_id=user_id,
+            participant_code=session.get('participant_code', 'unknown'),
             user_action="game_reload",
             timestamp=timestamp,
             data=json.dumps({
