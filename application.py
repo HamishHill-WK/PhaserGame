@@ -11,7 +11,6 @@ import difflib
 from dateutil.parser import isoparse
 import traceback
 from sqlalchemy import inspect
-import psycopg2
 from urllib.parse import urlparse
 import traceback
 from application_helper import is_development_mode, assign_balanced_condition, get_int_user_id, categorize_expertise_from_existing_survey, count_js_errors
@@ -28,8 +27,6 @@ try:
     print("Database configured successfully!")
 except Exception as e:
     print(f"Error configuring database: {e}")
-
-errors = []
 
 @application.route("/gameAIassistant", methods=["GET", "POST"])
 def gameAIassistant():
@@ -387,6 +384,40 @@ def clear_session():
         assistant.clear_conversation(session_id)
         return jsonify({"success": True, "message": "Session cleared"})
     return jsonify({"success": False, "error": "No active session"})
+
+@application.route("/save-final-game-code", methods=["POST"])
+def save_final_game_code():
+    """Save the user's final game.js script to the database at experiment completion."""
+    try:
+        session_id = session.get('session_id', 'unknown')
+        user_id = get_int_user_id()
+        if not user_id:
+            return jsonify({"success": False, "error": "No user_id in session"}), 400
+        user_file_path = os.path.join(application.static_folder, "js", "users", f"game_{session_id}.js")
+        if not os.path.exists(user_file_path):
+            return jsonify({"success": False, "error": "User game.js file not found"}), 404
+        with open(user_file_path, "r", encoding="utf-8") as f:
+            code = f.read()
+        experiment_data = ExperimentData(
+            session_id=session_id,
+            user_id=user_id,
+            user_action="final_code_save",
+            timestamp=datetime.now(),
+            data=json.dumps({
+                "file_name": f"game_{session_id}.js",
+                "final_code": code,
+                "code_length": len(code),
+                "lines_count": len(code.split('\n'))
+            })
+        )
+        if not is_development_mode():
+            db.session.add(experiment_data)
+            db.session.commit()
+        else:
+            print("[DEV] Skipping DB commit for final_code_save (development mode)")
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
 
 @application.route("/get-user-game-code", methods=["GET"])
 def get_user_game_code():

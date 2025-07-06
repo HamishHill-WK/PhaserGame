@@ -103,7 +103,6 @@ class CodeChange(db.Model):
     edit_id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     participant_code = db.Column(db.String(80), nullable=False)  # Unique code for user
-    experiment_data_id = db.Column(db.Integer, db.ForeignKey('experiment_data.id'), nullable=False)
     
     code_before = db.Column(db.Text, nullable=False)
     code_after = db.Column(db.Text, nullable=False)
@@ -122,5 +121,4 @@ class TaskCheck(db.Model):
     participant_code = db.Column(db.String(80), nullable=False)  # Unique code for user
     session_id = db.Column(db.String(100), nullable=False)
     task_id = db.Column(db.String(50), nullable=False)  # e.g., 'task1', 'task2', etc.
-    checked = db.Column(db.Boolean, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
