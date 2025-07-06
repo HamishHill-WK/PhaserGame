@@ -5,7 +5,7 @@ from datetime import datetime
 import assistant
 import secval
 import uuid
-from data import db, Survey, ExperimentData, User, configure_database, is_development_mode, TaskCheck, CodeChange
+from data import db, Survey, ExperimentData, User, configure_database, is_development_mode, TaskCheck, CodeChange, SUS
 from dotenv import load_dotenv 
 import difflib
 from dateutil.parser import isoparse
@@ -309,7 +309,56 @@ def LLMrequest():
         return jsonify(reponse_list)
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
-
+    
+@application.route("/sus", methods=["GET", "POST"])
+def sus():
+    if request.method == "GET":
+        # Show SUS questionnaire
+        return render_template('sus.html')
+    
+    elif request.method == "POST":
+        try:
+            session_id = session.get('session_id', 'unknown')
+            user_id = get_int_user_id(session)
+            
+            if not user_id:
+                user_id = 10000000001            
+            # Get responses (1-5 scale)
+            responses = []
+            for i in range(1, 11):
+                response = request.form.get(f'q{i}', type=int)
+                if response is None or response < 1 or response > 5:
+                    return jsonify({"success": False, "error": f"Invalid response for question {i}"}), 400
+                responses.append(response)
+            
+            # Save to database
+            sus_data = SUS(
+                session_id=session_id,
+                user_id=user_id,
+                participant_code=session.get('participant_code', 'unknown'),
+                q1_use_frequently=responses[0],
+                q2_unnecessarily_complex=responses[1],
+                q3_easy_to_use=responses[2],
+                q4_need_technical_support=responses[3],
+                q5_functions_integrated=responses[4],
+                q6_too_much_inconsistency=responses[5],
+                q7_learn_quickly=responses[6],
+                q8_cumbersome_to_use=responses[7],
+                q9_felt_confident=responses[8],
+                q10_learn_lot_before_use=responses[9],
+                submitted_at=datetime.now()
+            )
+            
+            if not is_development_mode():
+                db.session.add(sus_data)
+                db.session.commit()
+            
+            # Redirect to debrief
+            return redirect(url_for('debrief'))
+            
+        except Exception as e:
+            return jsonify({"success": False, "error": str(e)}), 500
+        
 @application.route("/debrief", methods=["GET", "POST"])
 def debrief():
     # Track experiment completion
@@ -317,49 +366,49 @@ def debrief():
     user_id = get_int_user_id(session)
 
     # Save final game.js code to DB at experiment completion
-    if user_id:
-        try:
-            user_file_path = os.path.join(application.static_folder, "js", "users", f"game_{session_id}.js")
-            if os.path.exists(user_file_path):
-                with open(user_file_path, "r", encoding="utf-8") as f:
-                    code = f.read()
-                experiment_data = ExperimentData(
-                    session_id=session_id,
-                    user_id=user_id,
-                    user_action="final_code_save",
-                    timestamp=datetime.now(),
-                    data=json.dumps({
-                        "file_name": f"game_{session_id}.js",
-                        "final_code": code,
-                        "code_length": len(code),
-                        "lines_count": len(code.split('\n'))
-                    })
-                )
-                if not is_development_mode():
-                    db.session.add(experiment_data)
-                    db.session.commit()
-                else:
-                    print("[DEV] Skipping DB commit for final_code_save (development mode)")
-        except Exception as e:
-            print(f"[ERROR] Failed to save final game.js code: {e}")
-    if user_id and request.method == "GET":
-        # Log that user reached debrief (experiment completion)
-        experiment_data = ExperimentData(
-            session_id=session_id,
-            user_id=user_id,
-            user_action="experiment_completed",
-            timestamp=datetime.now(),
-            data=json.dumps({
-                "reached_debrief": True,
-                "completion_timestamp": datetime.now().isoformat()
-            })
-        )
-        # Only commit to DB if not in development mode
-        if not is_development_mode():
-            db.session.add(experiment_data)
-            db.session.commit()
-        else:
-            print("[DEV] Skipping DB commit for experiment_data (development mode)")
+    # if user_id:
+    #     try:
+    #         user_file_path = os.path.join(application.static_folder, "js", "users", f"game_{session_id}.js")
+    #         if os.path.exists(user_file_path):
+    #             with open(user_file_path, "r", encoding="utf-8") as f:
+    #                 code = f.read()
+    #             experiment_data = ExperimentData(
+    #                 session_id=session_id,
+    #                 user_id=user_id,
+    #                 user_action="final_code_save",
+    #                 timestamp=datetime.now(),
+    #                 data=json.dumps({
+    #                     "file_name": f"game_{session_id}.js",
+    #                     "final_code": code,
+    #                     "code_length": len(code),
+    #                     "lines_count": len(code.split('\n'))
+    #                 })
+    #             )
+    #             if not is_development_mode():
+    #                 db.session.add(experiment_data)
+    #                 db.session.commit()
+    #             else:
+    #                 print("[DEV] Skipping DB commit for final_code_save (development mode)")
+    #     except Exception as e:
+    #         print(f"[ERROR] Failed to save final game.js code: {e}")
+    # if user_id and request.method == "GET":
+    #     # Log that user reached debrief (experiment completion)
+    #     experiment_data = ExperimentData(
+    #         session_id=session_id,
+    #         user_id=user_id,
+    #         user_action="experiment_completed",
+    #         timestamp=datetime.now(),
+    #         data=json.dumps({
+    #             "reached_debrief": True,
+    #             "completion_timestamp": datetime.now().isoformat()
+    #         })
+    #     )
+    #     # Only commit to DB if not in development mode
+    #     if not is_development_mode():
+    #         db.session.add(experiment_data)
+    #         db.session.commit()
+    #     else:
+    #         print("[DEV] Skipping DB commit for experiment_data (development mode)")
     # Show participant code if available
     participant_code = None
     # Always try to get from session first
@@ -644,6 +693,40 @@ def log_game_reload():
             db.session.commit()
         else:
             print("[DEV] Skipping DB commit for game_reload (development mode)")
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@application.route("/log-experiment-leave", methods=["POST"])
+def log_experiment_leave():
+    """Save the user's final game.js script to the database when the user leaves the experiment page."""
+    try:
+        session_id = session.get('session_id', 'unknown')
+        user_id = get_int_user_id(session)
+        if not user_id:
+            return jsonify({"success": False, "error": "No user_id in session"}), 400
+        user_file_path = os.path.join(application.static_folder, "js", "users", f"game_{session_id}.js")
+        if not os.path.exists(user_file_path):
+            return jsonify({"success": False, "error": "User game.js file not found"}), 404
+        with open(user_file_path, "r", encoding="utf-8") as f:
+            code = f.read()
+        experiment_data = ExperimentData(
+            session_id=session_id,
+            user_id=user_id,
+            user_action="final_code_save",
+            timestamp=datetime.now(),
+            data=json.dumps({
+                "file_name": f"game_{session_id}.js",
+                "final_code": code,
+                "code_length": len(code),
+                "lines_count": len(code.split('\n'))
+            })
+        )
+        if not is_development_mode():
+            db.session.add(experiment_data)
+            db.session.commit()
+        else:
+            print("[DEV] Skipping DB commit for final_code_save (development mode)")
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})

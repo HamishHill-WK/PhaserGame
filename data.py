@@ -122,3 +122,21 @@ class TaskCheck(db.Model):
     session_id = db.Column(db.String(100), nullable=False)
     task_id = db.Column(db.String(50), nullable=False)  # e.g., 'task1', 'task2', etc.
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    
+class SUS(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    session_id = db.Column(db.String(100), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    participant_code = db.Column(db.String(80), nullable=False)
+    
+    q1_use_frequently = db.Column(db.Integer, nullable=False)
+    q2_unnecessarily_complex = db.Column(db.Integer, nullable=False)
+    q3_easy_to_use = db.Column(db.Integer, nullable=False)
+    q4_need_technical_support = db.Column(db.Integer, nullable=False)
+    q5_functions_integrated = db.Column(db.Integer, nullable=False)
+    q6_too_much_inconsistency = db.Column(db.Integer, nullable=False)
+    q7_learn_quickly = db.Column(db.Integer, nullable=False)
+    q8_cumbersome_to_use = db.Column(db.Integer, nullable=False)
+    q9_felt_confident = db.Column(db.Integer, nullable=False)
+    q10_learn_lot_before_use = db.Column(db.Integer, nullable=False)
+    submitted_at = db.Column(db.DateTime, default=datetime.utcnow)
