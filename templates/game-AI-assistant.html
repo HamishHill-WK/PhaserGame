@@ -138,7 +138,7 @@
         <div id="finish-confirm-modal" style="display:none; position:fixed; left:0; top:0; width:100vw; height:100vh; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
             <div style="background:#fff; padding:32px; border-radius:8px; max-width:400px; margin:auto; text-align:center;">
                 <p id="finish-modal-message">You have not completed all tasks. Are you sure you want to finish the experiment early?</p>
-                <button id="proceed-debrief-btn" class="tab-button">Proceed to Debrief</button>
+                <button id="proceed-debrief-btn" class="tab-button">Proceed to next step</button>
                 <button id="continue-experiment-btn" class="tab-button">Return to Experiment</button>
             </div>
         </div>   
@@ -169,13 +169,19 @@
         }
         document.getElementById('finish-experiment-btn').addEventListener('click', function() {
             if (allTasksComplete()) {
-                window.location.href = "{{ url_for('debrief') }}";
+                if (window.location.pathname.includes('gameAIassistant')) {
+                    navigator.sendBeacon('/log-experiment-leave');
+                }
+                window.location.href = "{{ url_for('sus') }}";
             } else {
                 document.getElementById('finish-confirm-modal').style.display = 'flex';
             }
         });
         document.getElementById('proceed-debrief-btn').addEventListener('click', function() {
-            window.location.href = "{{ url_for('debrief') }}";
+            if (window.location.pathname.includes('gameAIassistant')) {
+                navigator.sendBeacon('/log-experiment-leave');
+            }
+            window.location.href = "{{ url_for('sus') }}";
         });
         document.getElementById('continue-experiment-btn').addEventListener('click', function() {
             document.getElementById('finish-confirm-modal').style.display = 'none';
@@ -234,6 +240,12 @@
                 });
             }
         });
+        window.addEventListener('beforeunload', function (e) {
+    // Attempt to save final code when user leaves the experiment page
+    if (window.location.pathname.includes('gameAIassistant')) {
+        navigator.sendBeacon('/log-experiment-leave');
+    }
+});
         </script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/aistyle.css') }}">
