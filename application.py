@@ -17,11 +17,9 @@ from application_helper import is_development_mode, assign_balanced_condition, g
 load_dotenv()
 
 validator = secval.SimpleSecurityValidator()
-
 application = Flask(__name__)
 application.secret_key = os.environ.get("SECRET_KEY", "your_secret_key")
 
-# IMPORTANT: Initialize database with Flask app
 try:
     configure_database(application)
     print("Database configured successfully!")
