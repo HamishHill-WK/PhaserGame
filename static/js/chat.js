@@ -29,6 +29,7 @@ inputForm.addEventListener('submit', function(e) {
     
     const input = userInput.value.trim();
     const context = getAllMessages();
+    const extendedThinking = document.getElementById('extended-thinking-checkbox')?.checked || false;
     console.log('chat.js: Context:', context);
     if (!input) return;
     
@@ -38,6 +39,15 @@ inputForm.addEventListener('submit', function(e) {
     // Clear input field
     userInput.value = '';
     
+    // Show loading message
+    const loadingId = 'llm-loading-message';
+    let loadingDiv = document.createElement('div');
+    loadingDiv.className = 'llm-response';
+    loadingDiv.id = loadingId;
+    loadingDiv.textContent = 'AI is thinking...';
+    outputDiv.appendChild(loadingDiv);
+    scrollToBottom();
+    
     fetch('/LLMrequest', {
         method: 'POST',
         headers: {
@@ -45,10 +55,14 @@ inputForm.addEventListener('submit', function(e) {
         },
         body: JSON.stringify({ 
             context : context,
-            input: input })
+            input: input,
+            extended_thinking: extendedThinking })
     })
     .then(response => response.json())
     .then(data => {
+        // Remove loading message
+        const loadingElem = document.getElementById(loadingId);
+        if (loadingElem) loadingElem.remove();
         if (data.error) {
             addMessage('Error: ' + data.error, 'error-message');
         } else {
@@ -66,6 +80,9 @@ inputForm.addEventListener('submit', function(e) {
         }
     })
     .catch(error => {
+        // Remove loading message
+        const loadingElem = document.getElementById(loadingId);
+        if (loadingElem) loadingElem.remove();
         console.error('Error:', error);
         addMessage('Error: ' + error.message, 'error-message');
     });

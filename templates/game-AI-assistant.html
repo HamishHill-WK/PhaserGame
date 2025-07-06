@@ -122,12 +122,15 @@
                 </div>
             </div>            <div class="tab-content hidden" id="editor"></div>
             <div class="console-container tab-content" id="console-container">
-                <div class="console-output" id="console-output"></div>
-                    <form id="input-form">
-                        <textarea type="text" id="user-input" placeholder="Enter your command" autocomplete="off"></textarea>
-                        <button class="tab-button" id="submit-button" type="submit">Send</button>
-                    </form>
+                <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                    <input type="checkbox" id="extended-thinking-checkbox" style="margin-right: 6px;">
+                    <label for="extended-thinking-checkbox" style="margin: 0; font-weight: 500;">Enable Extended Thinking (AI will take more time to reason)</label>
                 </div>
+                <div class="console-output" id="console-output"></div>
+                <form id="input-form">
+                    <textarea type="text" id="user-input" placeholder="Enter your command" autocomplete="off"></textarea>
+                    <button class="tab-button" id="submit-button" type="submit">Send</button>
+                </form>
             </div>
         </div>
     </div>
@@ -136,7 +139,7 @@
             <div style="background:#fff; padding:32px; border-radius:8px; max-width:400px; margin:auto; text-align:center;">
                 <p id="finish-modal-message">You have not completed all tasks. Are you sure you want to finish the experiment early?</p>
                 <button id="proceed-debrief-btn" class="tab-button">Proceed to Debrief</button>
-                <button id="continue-experiment-btn" class="tab-button">Continue Experiment</button>
+                <button id="continue-experiment-btn" class="tab-button">Return to Experiment</button>
             </div>
         </div>   
         <script>
