@@ -91,8 +91,8 @@ class ExperimentTimer {
 
         // Redirect to debrief page after a short delay
         setTimeout(() => {
-            alert('Time is up! The experiment is complete. You will now be redirected to the debrief page.');
-            window.location.href = '/debrief';
+            alert('Time is up! The experiment is complete. You will now be redirected to the next page.');
+            window.location.href = '/sus';
         }, 1000);
     }
 
