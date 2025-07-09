@@ -14,6 +14,10 @@ def get_secret(secret_name, region_name="eu-west-2"):
     get_secret_value_response = client.get_secret_value(
         SecretId=secret_name
     )
+    
+    print(f"Loaded secret: {secret_name} from AWS Secrets Manager"
+          f" in region {region_name}"
+          f" at {datetime.now().isoformat()}")
 
     return get_secret_value_response['SecretString']
 
