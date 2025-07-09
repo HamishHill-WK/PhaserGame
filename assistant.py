@@ -3,6 +3,26 @@ from dotenv import load_dotenv
 from datetime import datetime
 import os
 import shutil
+import boto3
+
+def get_secret(secret_name, region_name="eu-west-2"):
+    session = boto3.session.Session()
+    client = session.client(
+        service_name='secretsmanager',
+        region_name=region_name
+    )
+    get_secret_value_response = client.get_secret_value(
+        SecretId=secret_name
+    )
+
+    return get_secret_value_response['SecretString']
+
+# --- Fetch and set the OpenAI API key from AWS Secrets Manager ---
+try:
+    openai_api_key = get_secret("openai_api_key1")  # Use your actual secret name
+    os.environ["OPENAI_API_KEY"] = openai_api_key
+except Exception as e:
+    print("Could not load OpenAI API key from AWS Secrets Manager:", e)
 
 load_dotenv()
 client = OpenAI()
