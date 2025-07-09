@@ -183,20 +183,3 @@ def categorize_expertise_from_existing_survey(survey_data):
     else:
         return 'low'
     
-import subprocess
-
-def count_js_errors(code):
-    # Save code to a temp file
-    with open("temp_code.js", "w", encoding="utf-8") as f:
-        f.write(code)
-    # Run ESLint on the temp file
-    result = subprocess.run(
-        ["npx", "eslint", "temp_code.js", "--format", "json"],
-        capture_output=True, text=True
-    )
-    try:
-        lint_results = json.loads(result.stdout)
-        error_count = sum(len(file['messages']) for file in lint_results)
-        return error_count
-    except Exception:
-        return 0

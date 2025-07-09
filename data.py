@@ -54,6 +54,7 @@ class User(db.Model):
     participant_code = db.Column(db.String(80), unique=True, nullable=False) #shown to the user so they can request their data is removed
     assigned_condition = db.Column(db.String(20), nullable=True)  # 'ai' or 'control'
     expertise_level = db.Column(db.String(100), nullable=True)  # e.g., Beginner, Intermediate, Advanced
+    signed_date = db.Column(db.DateTime, default=datetime.utcnow)  # Date when user signed up
 
 class Survey(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -111,8 +112,6 @@ class CodeChange(db.Model):
     lines_added = db.Column(db.Integer, nullable=False)
     lines_removed = db.Column(db.Integer, nullable=False)
     
-    errors_before = db.Column(db.Integer, nullable=False)
-    errors_after = db.Column(db.Integer, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
 class TaskCheck(db.Model):

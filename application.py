@@ -13,7 +13,7 @@ import traceback
 from sqlalchemy import inspect
 from urllib.parse import urlparse
 import traceback
-from application_helper import is_development_mode, assign_balanced_condition, get_int_user_id, categorize_expertise_from_existing_survey, count_js_errors
+from application_helper import is_development_mode, assign_balanced_condition, get_int_user_id, categorize_expertise_from_existing_survey
 load_dotenv()
 
 validator = secval.SimpleSecurityValidator()
@@ -84,6 +84,7 @@ def survey():
 @application.route("/save-code", methods=["POST"])
 def save_code():
     try:
+        print("Received request to save code")
         data = request.get_json()
         code = data.get("code")
         session_id = session.get('session_id', 'unknown')
@@ -103,24 +104,31 @@ def save_code():
         
         # Validate file name to prevent directory traversal
         if file_name != "game.js":
+            print(f"Invalid file name: {file_name}")
             return jsonify({"success": False, "error": "Invalid file name"})
 
+        print(f"Saving code for session {session_id} with user ID {user_id} and file name {file_name}")
         # Save to user-specific file
         user_file_path = os.path.join(application.static_folder, "js", "users", f"game_{session_id}.js")
         os.makedirs(os.path.dirname(user_file_path), exist_ok=True)
         
+        print(f"User file path: {user_file_path}")
+        
         # --- Compute code diff for logging ---
         prev_code = ""
         if os.path.exists(user_file_path):
+            print(f"Loading previous code from {user_file_path}")
             with open(user_file_path, "r", encoding="utf-8") as f:
                 prev_code = f.read()
         prev_lines = prev_code.split('\n') if prev_code else []
         diff = list(difflib.unified_diff(prev_lines, code_lines, lineterm=''))        
-        last_error_count = session.get('error_count', 0)
+        #last_error_count = session.get('error_count', 0)
         
-        error_count = count_js_errors(code) or 0
-        if error_count != 0:
-            session['error_count'] = error_count
+        print("Computing JavaScript errors in the code")
+        
+        # error_count = count_js_errors(code) or 0
+        # if error_count != 0:
+        #     session['error_count'] = error_count
 
         last_ai_usage = session.get('last_ai_usage')
         last_code_save = session.get('last_code_save')
@@ -135,6 +143,8 @@ def save_code():
                     used_ai = True  # No previous save, but AI was used
             except Exception:
                 used_ai = False
+                
+        print("Logging ")
         # Only log if there are changes
         if user_id and diff:
             # Log code change to CodeChange table
@@ -154,8 +164,6 @@ def save_code():
                 lines_changed=lines_changed,
                 lines_added=lines_added,
                 lines_removed=lines_removed,
-                errors_before=last_error_count,
-                errors_after=error_count,
                 timestamp=datetime.now()
             )
             if not is_development_mode():
@@ -166,7 +174,10 @@ def save_code():
         
         # Save new code to file
         with open(user_file_path, "w", encoding="utf-8", newline='') as f:
+            print(f"Writing code to {user_file_path}")
             f.write(code)
+        
+        print(f"Code saved to {user_file_path}")
         
         # Log code save action to experiment data
         if user_id:
@@ -364,51 +375,6 @@ def debrief():
     # Track experiment completion
     session_id = session.get('session_id', 'unknown')
     user_id = get_int_user_id(session)
-
-    # Save final game.js code to DB at experiment completion
-    # if user_id:
-    #     try:
-    #         user_file_path = os.path.join(application.static_folder, "js", "users", f"game_{session_id}.js")
-    #         if os.path.exists(user_file_path):
-    #             with open(user_file_path, "r", encoding="utf-8") as f:
-    #                 code = f.read()
-    #             experiment_data = ExperimentData(
-    #                 session_id=session_id,
-    #                 user_id=user_id,
-    #                 user_action="final_code_save",
-    #                 timestamp=datetime.now(),
-    #                 data=json.dumps({
-    #                     "file_name": f"game_{session_id}.js",
-    #                     "final_code": code,
-    #                     "code_length": len(code),
-    #                     "lines_count": len(code.split('\n'))
-    #                 })
-    #             )
-    #             if not is_development_mode():
-    #                 db.session.add(experiment_data)
-    #                 db.session.commit()
-    #             else:
-    #                 print("[DEV] Skipping DB commit for final_code_save (development mode)")
-    #     except Exception as e:
-    #         print(f"[ERROR] Failed to save final game.js code: {e}")
-    # if user_id and request.method == "GET":
-    #     # Log that user reached debrief (experiment completion)
-    #     experiment_data = ExperimentData(
-    #         session_id=session_id,
-    #         user_id=user_id,
-    #         user_action="experiment_completed",
-    #         timestamp=datetime.now(),
-    #         data=json.dumps({
-    #             "reached_debrief": True,
-    #             "completion_timestamp": datetime.now().isoformat()
-    #         })
-    #     )
-    #     # Only commit to DB if not in development mode
-    #     if not is_development_mode():
-    #         db.session.add(experiment_data)
-    #         db.session.commit()
-    #     else:
-    #         print("[DEV] Skipping DB commit for experiment_data (development mode)")
     # Show participant code if available
     participant_code = None
     # Always try to get from session first
@@ -508,12 +474,9 @@ def submit_survey():
         programming_languages = request.form.getlist('languages')
         
         used_phaser = request.form.get('used_phaser') == 'yes'
-        phaser_experience_description = request.form.get('phaser_details', '')
         uses_ai_tools = request.form.get('uses_ai_tools') == 'yes'
         ai_usage_details = request.form.getlist('ai_usage')
-        ai_usage_description = request.form.get('ai_usage_details', '')
-        experience_description = request.form.get('experience_details', '')
-
+        
         # Student/graduate/self-taught fields
         is_student = bool(request.form.get('is_student'))
         is_graduate = bool(request.form.get('is_graduate'))
@@ -538,11 +501,8 @@ def submit_survey():
             programming_proffessional_level=programming_proffessional_level,
             programming_languages=json.dumps(programming_languages) if programming_languages else '',
             used_phaser=used_phaser,
-            phaser_experience_description=phaser_experience_description,
             uses_ai_tools=uses_ai_tools,
             ai_usage_details=json.dumps(ai_usage_details) if ai_usage_details else '',
-            ai_tools_description=ai_usage_description,
-            experience_description=experience_description,
             is_student=is_student,
             is_graduate=is_graduate,
             is_self_taught=is_self_taught,
