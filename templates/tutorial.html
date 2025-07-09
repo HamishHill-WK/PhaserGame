@@ -100,7 +100,7 @@
     document.addEventListener('DOMContentLoaded', function() {
         // Disable all buttons except tab buttons
         document.querySelectorAll('button').forEach(function(btn) {
-            if (!btn.classList.contains('tab-button') || btn.id === 'finish-experiment-btn') {
+            if (!btn.classList.contains('tab-button') || btn.id === 'finish-experiment-btn' || !btn.id === 'restart-tutorial-btn') {
                 // If not a tab button, or is the finish experiment button, disable it
                 btn.disabled = true;
                 btn.style.background = '#ccc';
