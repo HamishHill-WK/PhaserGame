@@ -1,4 +1,5 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for, session
+from flask import Flask, render_template, request, jsonify, redirect, url_for, session, Response
+from functools import wraps
 import os 
 import json
 from datetime import datetime
@@ -374,6 +375,15 @@ def debrief():
         user = User.query.get(user_id)
         if user:
             participant_code = user.participant_code
+            
+    user_file_path = os.path.join(application.static_folder, "js", "users", f"game_{session_id}.js")
+    try:
+        if os.path.exists(user_file_path):
+            os.remove(user_file_path)
+            print(f"Deleted user game.js file: {user_file_path}")
+    except Exception as e:
+        print(f"Error deleting user game.js file: {e}")
+
     return render_template('debrief.html', participant_code=participant_code)
 
 @application.route("/clear-session", methods=["POST"])
@@ -560,7 +570,27 @@ def log_consent():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
+def check_auth(username, password):
+    # Set your admin username and password here (or load from env)
+    return username == 'admin' and password == 'yourpassword'
+
+def authenticate():
+    return Response(
+        'Could not verify your access to this page.\n'
+        'You must provide valid credentials.', 401,
+        {'WWW-Authenticate': 'Basic realm="Login Required"'})
+
+def requires_auth(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        auth = request.authorization
+        if not auth or not check_auth(auth.username, auth.password):
+            return authenticate()
+        return f(*args, **kwargs)
+    return decorated
+
 @application.route("/init-db")
+#@requires_auth
 def init_database():
     """Initialize database tables - REMOVE THIS ROUTE AFTER USE"""
     try:
