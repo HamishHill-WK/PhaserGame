@@ -321,10 +321,10 @@ def sus():
     elif request.method == "POST":
         try:
             session_id = session.get('session_id', 'unknown')
-            user_id = get_int_user_id(session)
+            user_id = session.get('user_id')
             
             if not user_id:
-                user_id = 10000000001            
+                user_id = 111            
             # Get responses (1-5 scale)
             responses = []
             for i in range(1, 11):

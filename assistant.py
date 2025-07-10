@@ -4,6 +4,7 @@ from datetime import datetime
 import os
 import boto3
 import tiktoken
+import requests
 
 print("Loading OpenAI API key from AWS Secrets Manager...")
 
@@ -189,7 +190,7 @@ def get_react_response(context="", user_message="", session_id="default", user_i
     
     # Calculate total length of all conversation content for this user/session
     total_token_length = sum(
-        count_tokens(msg.get("content", "")) for msg in conversations[session_id] if "content" in msg
+        count_tokens(content=msg.get("content", "")) for msg in conversations[session_id] if "content" in msg
     )
     print(f"Total token length for session {session_id}: {total_token_length}")
     
@@ -377,7 +378,6 @@ Keep the analysis concise but thorough. Focus on practical feedback."""
     return f"AI Code Analysis:\n\n{response.output_text}"
 
 
-import requests
 
 def search_phaser_docs(query: str) -> str:
     """Search Phaser.js documentation using web search."""
@@ -511,7 +511,7 @@ Confidence: [Your confidence in the answer from 0 to 1.0, where 1 is very confid
     
     return response
 
-def count_tokens(encoding_name="o200k_base", content=""):
-    encoding = tiktoken.get_encoding(encoding_name)
+def count_tokens(content=""):
+    encoding = tiktoken.get_encoding("o200k_base")
     tokens = encoding.encode(content)
     return len(tokens)
