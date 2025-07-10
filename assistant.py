@@ -5,7 +5,10 @@ import os
 import shutil
 import boto3
 
+print("Loading OpenAI API key from AWS Secrets Manager...")
+
 def get_secret(secret_name, region_name="eu-west-2"):
+    print(f"Fetching secret: {secret_name} from AWS Secrets Manager in region {region_name}")
     session = boto3.session.Session()
     client = session.client(
         service_name='secretsmanager',
@@ -23,13 +26,13 @@ def get_secret(secret_name, region_name="eu-west-2"):
 
 # --- Fetch and set the OpenAI API key from AWS Secrets Manager ---
 try:
-    openai_api_key = get_secret("openai_api_key1")  # Use your actual secret name
+    openai_api_key = get_secret("openai_api_key1").split(':')[1].replace('\"', '').replace('}', '')  # Use your actual secret name
     os.environ["OPENAI_API_KEY"] = openai_api_key
 except Exception as e:
     print("Could not load OpenAI API key from AWS Secrets Manager:", e)
 
 load_dotenv()
-client = OpenAI()
+client = OpenAI(api_key=openai_api_key)
 
 # Dictionary to store conversations by session_id
 conversations = {}

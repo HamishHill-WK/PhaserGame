@@ -127,6 +127,18 @@ html, body {
     margin: 10px 0;
 }
 
+.dropdown-current-task {
+    font-weight: bold;
+    color: #333;
+    font-size: 14px;
+}
+
+.checkbox-description {
+    display: inline-block;
+    color: #000000;
+    font-size: 14px;
+}
+
 .dropdown-locked {
     background-color: #BAD1D3;
 
@@ -138,8 +150,8 @@ html, body {
 .editor-header {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px;
+    gap: 2px;
+    padding: 2px;
     background-color: #f5f5f5;
     border-bottom: 1px solid #ccc;
     flex-shrink: 0; /* Prevent header from shrinking */
@@ -159,11 +171,27 @@ html, body {
 .editor-actions {
     flex-shrink: 0;
     margin-top: 10px;
+    font-size: 14px;
 }
 
 .editor-actions button {
     margin-right: 10px;
     padding: 6px 12px;
+    max-width: 75px;
+    width: fit-content;
+    font-size: 14px;
+
+}
+
+#finish-experiment-btn{
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 10px 20px;
+    cursor: pointer;
+    width: fit-content;
+    max-width: fit-content;
 }
 
 .controls {
