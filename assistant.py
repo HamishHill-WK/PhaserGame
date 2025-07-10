@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 from datetime import datetime
 import os
 import boto3
+import tiktoken
 
 print("Loading OpenAI API key from AWS Secrets Manager...")
 
@@ -22,6 +23,8 @@ def get_secret(secret_name, region_name="eu-west-2"):
           f" at {datetime.now().isoformat()}")
 
     return get_secret_value_response['SecretString']
+
+MAX_TOKENS = 1014808
 
 # --- Fetch and set the OpenAI API key from AWS Secrets Manager ---
 try:
@@ -140,6 +143,9 @@ def get_llm_response(context="", user_message="", session_id="default", user_id=
         for m in conversations[session_id] if "role" in m and "content" in m
     ]
     
+    
+    
+    
     response = client.responses.create(
         model="gpt-4.1-mini",
         instructions="You are a JavaScript and Phaser.js coding assistant. You are helping a game developer implement mechanics. Provide clear, working code solutions and explanations.",
@@ -180,6 +186,17 @@ def get_react_response(context="", user_message="", session_id="default", user_i
         "role": "user",
         "content": user_message
     })
+    
+    # Calculate total length of all conversation content for this user/session
+    total_token_length = sum(
+        count_tokens(msg.get("content", "")) for msg in conversations[session_id] if "content" in msg
+    )
+    print(f"Total token length for session {session_id}: {total_token_length}")
+    
+    total_token_length = total_token_length + count_tokens(user_message)
+    
+    if total_token_length > MAX_TOKENS:
+        return {"error": "Your conversation is too long for the AI to process. Please start a new chat using the clear chat button. This will reset the conversation and allow you to continue. If you have any important information, please copy it before clearing the chat."}
     
     # Initialize conversation context for this ReAct session
     react_context = [user_message]
@@ -493,3 +510,8 @@ Confidence: [Your confidence in the answer from 0 to 1.0, where 1 is very confid
     
     
     return response
+
+def count_tokens(encoding_name="o200k_base", content=""):
+    encoding = tiktoken.get_encoding(encoding_name)
+    tokens = encoding.encode(content)
+    return len(tokens)
