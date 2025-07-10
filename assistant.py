@@ -26,7 +26,7 @@ def get_secret(secret_name, region_name="eu-west-2"):
 
 # --- Fetch and set the OpenAI API key from AWS Secrets Manager ---
 try:
-    openai_api_key = get_secret("openai_api_key1").split(':')[1].replace('\"', '').replace('}', '')  # Use your actual secret name
+    openai_api_key = get_secret("openai_api_key1").split(':')[1].replace('\"', '').replace('}', '')  
     os.environ["OPENAI_API_KEY"] = openai_api_key
 except Exception as e:
     print("Could not load OpenAI API key from AWS Secrets Manager:", e)
