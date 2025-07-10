@@ -10,9 +10,6 @@ from dotenv import load_dotenv
 import difflib
 from dateutil.parser import isoparse
 import traceback
-from sqlalchemy import inspect
-from urllib.parse import urlparse
-import traceback
 from application_helper import is_development_mode, assign_balanced_condition, get_int_user_id, categorize_expertise_from_existing_survey
 load_dotenv()
 
@@ -247,6 +244,9 @@ def log_error():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
+import re
+# ...existing code...
+
 @application.route("/LLMrequest", methods=["POST"])
 def LLMrequest():
     try:
@@ -255,19 +255,16 @@ def LLMrequest():
         print(f"Application.py: Context received: {context}")
         user_message = data.get("input", "")
         extended_thinking = data.get("extended_thinking", False)
-        # Get or create session ID
         session_id = session.get('session_id', f"session_{uuid.uuid4().hex[:12]}")
         if 'session_id' not in session:
             session['session_id'] = session_id
-        # Get user_id from session for tracking
         user_id = session.get('user_id')
-        # Ensure session ID is set  
         response = ""
         if extended_thinking:
             response = assistant.get_react_response(context, user_message, session_id, user_id)
         else:
             response = assistant.get_llm_response(context, user_message, session_id, user_id)
-        
+
         # Save user message and LLM response to ExperimentData
         if user_id:
             db.session.add(ExperimentData(
@@ -278,48 +275,41 @@ def LLMrequest():
                 timestamp=datetime.now(),
                 data=json.dumps({
                     "user_message": user_message,
-                    "llm_response": getattr(response, 'output_text', str(response)),
+                    "llm_response": response,
                     "extended_thinking": extended_thinking
                 })
             ))
             db.session.commit()
-        # Track last AI usage in session
         session['last_ai_usage'] = datetime.now().isoformat()
-        response_segments = {}
-        # Extract code between triple backticks if present
-        if "```" in response.output_text:
-            # Find all code blocks
-            code_blocks = []
-            parts = response.output_text.split("```")
-            for i, p in enumerate(parts):
-                print(f"\n\nApplication.py: Part {i}: {p}\n\n")
-                if "javascript" in p:
-                    # If the part contains 'javascript', it's likely a code block
-                    response_segments[i] = ["code", p.split("javascript")[1].strip()]
-                elif "json" in p:
-                    # If the part contains 'json', it's likely a code block
-                    response_segments[i] = ["code", p.split("json")[1].strip()]
-                    code_blocks.append(p.strip())
-                elif "js" in p:
-                    # If the part contains 'js', it's likely a code block
-                    response_segments[i] = ["code", p.split("js")[1].strip()]
-                    code_blocks.append(p.strip())
-                else:
-                    # Otherwise, it's just a regular text segment
-                    response_segments[i] = ["text", p.strip()]
-            # If we found code blocks, update the response
-            if code_blocks:
-                response = {
-                    "message": response_segments,
-                    "code": code_blocks
-                }
-        else:
-            # If no code blocks, just return the text response
-            response_segments[0] = ["text", response.output_text]
-        reponse_list = list(response_segments.values())
-        return jsonify(reponse_list)
+
+        segments = []
+        # Pattern matches ```lang\ncode``` or ```\ncode```
+        pattern = re.compile(r"```(\w+)?\n(.*?)```", re.DOTALL)
+        last_end = 0
+        for match in pattern.finditer(response):
+            # Add preceding text, if any
+            if match.start() > last_end:
+                text = response[last_end:match.start()].strip()
+                if text:
+                    segments.append(["text", text])
+            code = match.group(2).strip()
+            #lang = match.group(1) or ""
+            segments.append(["code", code])
+            last_end = match.end()
+        # Add any trailing text
+        if last_end < len(response):
+            text = response[last_end:].strip()
+            if text:
+                segments.append(["text", text])
+        if not segments:
+            segments.append(["text", response])
+            
+        print(f"Application.py: Segments created: {segments}")
+        print(jsonify(segments))
+
+        return jsonify(segments)
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)})
+        return jsonify(["text", text])
     
 @application.route("/sus", methods=["GET", "POST"])
 def sus():

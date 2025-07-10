@@ -2,7 +2,6 @@ from openai import OpenAI
 from dotenv import load_dotenv
 from datetime import datetime
 import os
-import shutil
 import boto3
 
 print("Loading OpenAI API key from AWS Secrets Manager...")
@@ -58,7 +57,7 @@ def get_response(prompt="", content="", model="gpt-4.1-mini"):
     if tokens_left != 'Unknown' and int(tokens_left) < 1000:
         print("⚠️ WARNING: Less than 1000 tokens remaining!")
 
-    return response
+    return response.output_text
 
 def get_conversation(session_id):
     """Get conversation history for a specific session"""
@@ -167,7 +166,7 @@ def get_llm_response(context="", user_message="", session_id="default", user_id=
     if tokens_left != 'Unknown' and int(tokens_left) < 1000:
         print("⚠️ WARNING: Less than 1000 tokens remaining!")
         
-    return response
+    return response.output_text
 
 def get_react_response(context="", user_message="", session_id="default", user_id=None):
     # Initialize conversation for new sessions
@@ -230,10 +229,12 @@ def get_react_response(context="", user_message="", session_id="default", user_i
             accumulated_data
         )
         
-        final_response_confidence = final_response.output_text.split("Confidence:")[1].strip()
+        final_response, final_response_confidence = final_response.output_text.split("Confidence:")
         final_response_confidence = float(final_response_confidence) if final_response_confidence.replace('.', '', 1).isdigit() else 0.0
         if final_response_confidence < 0.5:
             print("⚠️ Low confidence in final response, continuing ReAct loop")
+            print(f"Confidence score: {final_response_confidence}")
+            print(f"Final response: {final_response}")
             continue
         elif final_response_confidence >= 0.5:
             print("✅ High confidence in final response, breaking ReAct loop")
@@ -242,7 +243,7 @@ def get_react_response(context="", user_message="", session_id="default", user_i
     # Store conversation
     conversations[session_id].append({
         "role": "assistant",
-        "response": final_response.output_text,
+        "response": final_response,
         "timestamp": datetime.now().isoformat()
     })
     
@@ -489,5 +490,6 @@ Confidence: [Your confidence in the answer from 0 to 1.0, where 1 is very confid
         instructions=prompt,
         input=context_str
     )
+    
     
     return response
