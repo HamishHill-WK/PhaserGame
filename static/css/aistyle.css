@@ -125,8 +125,8 @@
     margin-bottom: 10px;
     white-space: pre-wrap;
     min-height: 100px;
-    max-height: none; /* Allow it to grow within flex container */
-    scroll-behavior: smooth; /* Smooth scrolling */
+    max-height: none; 
+    scroll-behavior: smooth; 
 }
 
 #input-form{
@@ -186,7 +186,6 @@
     border: 1px solid #424242;
 }
 
-/* Message styling for chat */
 .player-input {
     background-color: #e3f2fd;
     color: #1976d2;

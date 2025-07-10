@@ -33,7 +33,6 @@ function toggleAIUsage() {
     } else {
         aiUsageGroup.style.display = 'none';
         aiDetailsGroup.style.display = 'none';
-        // Clear AI usage checkboxes
         document.querySelectorAll('input[name="ai_usage"]').forEach(cb => cb.checked = false);
         document.getElementById('ai_usage_details').value = '';
     }
@@ -60,9 +59,6 @@ function togglePhaserUsage(){
         phaserUsageGroup.style.display = 'none';
     }
 }
-
-// Move inline JS from survey.html to survey.js
-
 // Programming fields toggle
 function toggleProgrammingFields() {
     var progExp = document.getElementById('programming_experience_detailed').value;
@@ -181,7 +177,6 @@ function toggleCourseRelated() {
         courseRelatedGroup.style.display = 'block';
     } else {
         courseRelatedGroup.style.display = 'none';
-        // Optionally clear selection
         const radios = courseRelatedGroup.querySelectorAll('input[type="radio"]');
         radios.forEach(r => r.checked = false);
     }

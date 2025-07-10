@@ -12,6 +12,8 @@ import difflib
 from dateutil.parser import isoparse
 import traceback
 from application_helper import is_development_mode, assign_balanced_condition, get_int_user_id, categorize_expertise_from_existing_survey
+import re
+
 load_dotenv()
 
 validator = secval.SimpleSecurityValidator()
@@ -26,29 +28,29 @@ except Exception as e:
 
 @application.route("/gameAIassistant", methods=["GET", "POST"])
 def gameAIassistant():
-    # Use existing session ID from survey flow or create new one
     session_id = session.get('session_id')
     if not session_id:
         session['session_id'] = f"session_{uuid.uuid4().hex[:12]}"
-    # Get assigned_condition from session or user
     assigned_condition = session.get('assigned_condition')
+    print(f"Assigned condition from session: {assigned_condition}")
     if not assigned_condition:
         user_id = session.get('user_id')
+        print(f"User ID from session: {user_id}")
         assigned_condition = None
         if user_id:
             user = User.query.get(user_id)
             if user and hasattr(user, 'assigned_condition'):
                 assigned_condition = user.assigned_condition
                 session['assigned_condition'] = assigned_condition
+                print(f"session['assigned_condition'] set to {session['assigned_condition']}")
+                print(f"User {user_id} assigned to condition: {assigned_condition}")
     return render_template('game-AI-assistant.html', assigned_condition=assigned_condition)
 
 @application.route("/")
 @application.route("/index")
 def index():
-    # Generate session ID for user tracking across all pages
     if 'session_id' not in session:
         session['session_id'] = f"session_{uuid.uuid4().hex[:12]}"
-    # Generate participant code if not present, but do NOT create user in DB here
     participant_code = None
     if 'participant_code' not in session:
         participant_code_val = f"P{uuid.uuid4().hex[:8].upper()}"
@@ -58,7 +60,6 @@ def index():
         participant_code = session['participant_code']
     return render_template('index.html', participant_code=participant_code)
 
-# Add the survey route
 @application.route("/opensurvey", methods=["GET", "POST"])
 def opensurvey():
     # Ensure session ID exists from consent page
@@ -71,7 +72,6 @@ def opensurvey():
     
 @application.route("/survey")
 def survey():
-    # Ensure session ID consistency
     session_id = session.get('session_id')
     if not session_id:
         session['session_id'] = f"session_{uuid.uuid4().hex[:12]}"
@@ -86,9 +86,10 @@ def save_code():
         data = request.get_json()
         code = data.get("code")
         session_id = session.get('session_id', 'unknown')
-        user_id = get_int_user_id(session)
+        user_id = session['user_id']
         
-        # Should be:
+        print(f"Session ID: {session_id}, User ID: {user_id}")
+        
         validation_result = validator.validate(code)
         is_safe = validation_result['is_safe']
         violations = validation_result['violations']
@@ -106,13 +107,11 @@ def save_code():
             return jsonify({"success": False, "error": "Invalid file name"})
 
         print(f"Saving code for session {session_id} with user ID {user_id} and file name {file_name}")
-        # Save to user-specific file
         user_file_path = os.path.join(application.static_folder, "js", "users", f"game_{session_id}.js")
         os.makedirs(os.path.dirname(user_file_path), exist_ok=True)
         
         print(f"User file path: {user_file_path}")
         
-        # --- Compute code diff for logging ---
         prev_code = ""
         if os.path.exists(user_file_path):
             print(f"Loading previous code from {user_file_path}")
@@ -120,13 +119,6 @@ def save_code():
                 prev_code = f.read()
         prev_lines = prev_code.split('\n') if prev_code else []
         diff = list(difflib.unified_diff(prev_lines, code_lines, lineterm=''))        
-        #last_error_count = session.get('error_count', 0)
-        
-        print("Computing JavaScript errors in the code")
-        
-        # error_count = count_js_errors(code) or 0
-        # if error_count != 0:
-        #     session['error_count'] = error_count
 
         last_ai_usage = session.get('last_ai_usage')
         last_code_save = session.get('last_code_save')
@@ -142,18 +134,12 @@ def save_code():
             except Exception:
                 used_ai = False
                 
-        print("Logging ")
-        # Only log if there are changes
         if user_id and diff:
-            # Log code change to CodeChange table
-            # Get previous and new code as strings
             prev_code_str = '\n'.join(prev_lines)
             new_code_str = code
-            # Calculate line changes
             lines_changed = len(diff)
             lines_added = sum(1 for d in diff if d.startswith('+') and not d.startswith('+++'))
             lines_removed = sum(1 for d in diff if d.startswith('-') and not d.startswith('---'))
-            # Optionally, you could track errors_before/errors_after if available
             code_change = CodeChange(
                 user_id=user_id,
                 participant_code=session.get('participant_code', 'unknown'),
@@ -169,14 +155,12 @@ def save_code():
                 db.session.commit()
             else:
                 print("[DEV] Skipping DB commit for code_change (development mode)")
+                
         
         # Save new code to file
         with open(user_file_path, "w", encoding="utf-8", newline='') as f:
-            print(f"Writing code to {user_file_path}")
             f.write(code)
-        
-        print(f"Code saved to {user_file_path}")
-        
+
         # Log code save action to experiment data
         if user_id:
             experiment_data = ExperimentData(
@@ -198,8 +182,9 @@ def save_code():
                 db.session.commit()
             else:
                 print("[DEV] Skipping DB commit for experiment_data (development mode)")
+        else:
+            print("User ID not found in session, skipping experiment data logging")
         
-        # Update last_code_save timestamp in session
         session['last_code_save'] = datetime.now().isoformat()
         
         return jsonify({"success": True})
@@ -245,15 +230,12 @@ def log_error():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
-import re
-# ...existing code...
 
 @application.route("/LLMrequest", methods=["POST"])
 def LLMrequest():
     try:
         data = request.get_json()
         context = data.get("context", [])
-        print(f"Application.py: Context received: {context}")
         user_message = data.get("input", "")
         extended_thinking = data.get("extended_thinking", False)
         session_id = session.get('session_id', f"session_{uuid.uuid4().hex[:12]}")
@@ -304,9 +286,7 @@ def LLMrequest():
                 segments.append(["text", text])
         if not segments:
             segments.append(["text", response])
-            
-        print(f"Application.py: Segments created: {segments}")
-        print(jsonify(segments))
+
 
         return jsonify(segments)
     except Exception as e:
@@ -355,7 +335,6 @@ def sus():
                 db.session.add(sus_data)
                 db.session.commit()
             
-            # Redirect to debrief
             return redirect(url_for('debrief'))
             
         except Exception as e:
@@ -477,7 +456,6 @@ def submit_survey():
         uses_ai_tools = request.form.get('uses_ai_tools') == 'yes'
         ai_usage_details = request.form.getlist('ai_usage')
         
-        # Student/graduate/self-taught fields
         is_student = bool(request.form.get('is_student'))
         is_graduate = bool(request.form.get('is_graduate'))
         is_self_taught = bool(request.form.get('is_self_taught'))
@@ -488,7 +466,6 @@ def submit_survey():
         undergrad_year = request.form.get('undergrad_year')
         course_related = request.form.get('course_related') == 'yes'
 
-        # Save to database with session tracking
         survey_data = Survey(
             session_id=session_id,
             participant_code=participant_code,
@@ -518,6 +495,8 @@ def submit_survey():
         
         expertise = categorize_expertise_from_existing_survey(survey_data)
         assigned_condition = assign_balanced_condition(User, expertise)
+        
+        session["assigned_condition"] = assigned_condition
 
         # Create the user in the database
         user = User(
@@ -560,7 +539,6 @@ def log_consent():
         if not participant_code_val:
             participant_code_val = f"P{uuid.uuid4().hex[:8].upper()}"
             session['participant_code'] = participant_code_val
-        # Store the user object in the session for use on the survey page
         session['anonymous_user'] = {
             'participant_code': participant_code_val,
             'signed_date': signed_date_form
@@ -595,7 +573,7 @@ def init_database():
     """Initialize database tables - REMOVE THIS ROUTE AFTER USE"""
     try:
         print("Creating database tables...")
-        db.drop_all()  # Drop existing tables first
+        db.drop_all()  
         db.create_all()
         print("Database tables created successfully!")
         return """

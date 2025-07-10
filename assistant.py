@@ -48,7 +48,6 @@ def get_response(prompt="", content="", model="gpt-4.1-mini"):
         input=content
     )
     
-# CHECK RATE LIMITS FROM RESPONSE
     headers = getattr(response, 'headers', {})
     requests_left = headers.get('x-ratelimit-remaining-requests', 'Unknown')
     tokens_left = headers.get('x-ratelimit-remaining-tokens', 'Unknown')    
@@ -68,12 +67,10 @@ def get_conversation(session_id):
     return conversations.get(session_id, [])
 
 def clear_conversation(session_id):
-    """Clear conversation history for a specific session"""
     if session_id in conversations:
         del conversations[session_id]
 
 def get_gamescript(session_id="default"):
-    """Get user-specific game script"""
     try:
         # Each user gets their own game file
         user_game_file = f"static/js/users/game_{session_id}.js"
@@ -212,7 +209,7 @@ def get_react_response(context="", user_message="", session_id="default", user_i
     
     # ReAct loop
     for step in range(3):
-        print(f"🔄 ReAct Step {step + 1}")
+        print(f"ReAct Step {step + 1}")
         
         # Get reasoning with accumulated context
         reasoning_response = reasoning_step(react_context)

@@ -44,8 +44,8 @@ def configure_database(application):
             }
     else:
         raise ValueError("No database configuration found. Please set DATABASE_URL or RDS environment variables.")
-    print(f"Final DATABASE_URL: {DATABASE_URL}")
-    print(application.config)
+    #'print(f"Final DATABASE_URL: {DATABASE_URL}")
+   # print(application.config)
     db.init_app(application)
     return db
 

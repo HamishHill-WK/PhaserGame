@@ -1,4 +1,3 @@
-// Experiment Timer - 1 hour countdown
 class ExperimentTimer {
     constructor() {
         this.duration = 60 * 60; // 1 hour in seconds

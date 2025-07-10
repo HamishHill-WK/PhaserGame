@@ -172,7 +172,6 @@ body {
     box-shadow: none;
 }
 
-/* Responsive design */
 @media (max-width: 768px) {
     body {
         padding: 10px;
@@ -244,7 +243,6 @@ body {
     }
 }
 
-/* Error styling for required fields */
 .question-item:has(input[type="radio"]:invalid) {
     border-color: #dc3545;
     background-color: #fff5f5;
@@ -254,7 +252,6 @@ body {
     color: #dc3545;
 }
 
-/* Form validation feedback */
 .sus-form-invalid {
     border: 2px solid #dc3545;
     background-color: #fff5f5;

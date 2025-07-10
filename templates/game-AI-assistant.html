@@ -146,6 +146,7 @@
         window.assigned_condition = "{{ assigned_condition|default('ai') }}";
 
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('Experiment condition:', window.assigned_condition);
             if (window.assigned_condition === "control") {
                 // Hide AI chat (console-container)
                 document.getElementById('console-container').style.display = 'none';

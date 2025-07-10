@@ -18,8 +18,6 @@ class Breakout extends Phaser.Scene
 
     create ()
     {
-        
-        //  Enable world bounds, but disable the floor
         this.physics.world.setBoundsCollision(true, true, true, false);
 
         //  Create the bricks in a 10x6 grid

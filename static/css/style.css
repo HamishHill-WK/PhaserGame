@@ -47,7 +47,7 @@ html, body {
     border-radius: 4px;
     flex: 1;
     min-width: 400px;
-    height: 90vh; /* Fill viewport height minus padding */
+    height: 90vh; 
     overflow: hidden;
 }
 
@@ -154,16 +154,16 @@ html, body {
     padding: 2px;
     background-color: #f5f5f5;
     border-bottom: 1px solid #ccc;
-    flex-shrink: 0; /* Prevent header from shrinking */
+    flex-shrink: 0;
     min-height: 60px;
 }
 
 #editor {
-    flex: 1; /* Take up remaining space */
+    flex: 1; 
     width: 100%;
     font-size: 14px;
-    min-height: 0; /* Minimum height for usability */
-    height: 100%; /* Fill available height */
+    min-height: 0; 
+    height: 100%; 
     border: none;
     outline: none;
 }
@@ -203,7 +203,6 @@ html, body {
     background: white;
 }
 
-/* Debug Console Styles */
 #debug-console-output {
     background-color: #1e1e1e;
     color: #ffffff;
@@ -285,7 +284,6 @@ html, body {
     color: #FFCC02;
 }
 
-/* Scrollbar styling for debug console */
 #debug-console::-webkit-scrollbar {
     width: 6px;
 }
@@ -303,7 +301,6 @@ html, body {
     background: #777;
 }
 
-/* Timer Container Styles */
 .timer-container {
     position: relative;
     display: inline-block;
@@ -338,7 +335,6 @@ html, body {
     100% { opacity: 1; }
 }
 
-/* Responsive layout for smaller screens */
 @media (max-width: 1400px) {
     #main-container {
         flex-direction: column;
@@ -348,7 +344,7 @@ html, body {
     .editor-container {
         max-width: 1000px;
         margin-top: 20px;
-        height: 500px; /* Fixed height for mobile */
+        height: 500px; 
     }
     
     #editor {
