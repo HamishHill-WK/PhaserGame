@@ -322,9 +322,9 @@ def sus():
         try:
             session_id = session.get('session_id', 'unknown')
             user_id = session.get('user_id')
-            
+            print(f"Received SUS submission for session {session_id} with user ID {user_id}")
             if not user_id:
-                user_id = 111            
+                user_id = None            
             # Get responses (1-5 scale)
             responses = []
             for i in range(1, 11):

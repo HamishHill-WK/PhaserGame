@@ -125,7 +125,7 @@ class TaskCheck(db.Model):
 class SUS(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     session_id = db.Column(db.String(100), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     participant_code = db.Column(db.String(80), nullable=False)
     
     q1_use_frequently = db.Column(db.Integer, nullable=False)
