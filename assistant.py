@@ -2,10 +2,40 @@ from openai import OpenAI
 from dotenv import load_dotenv
 from datetime import datetime
 import os
-import shutil
+import boto3
+import tiktoken
+import requests
+
+#print("Loading OpenAI API key from AWS Secrets Manager...")
+
+def get_secret(secret_name, region_name="eu-west-2"):
+    print(f"Fetching secret: {secret_name} from AWS Secrets Manager in region {region_name}")
+    session = boto3.session.Session()
+    client = session.client(
+        service_name='secretsmanager',
+        region_name=region_name
+    )
+    get_secret_value_response = client.get_secret_value(
+        SecretId=secret_name
+    )
+    
+    # print(f"Loaded secret: {secret_name} from AWS Secrets Manager"
+    #       f" in region {region_name}"
+    #       f" at {datetime.now().isoformat()}")
+
+    return get_secret_value_response['SecretString']
+
+MAX_TOKENS = 1014808
+
+# --- Fetch and set the OpenAI API key from AWS Secrets Manager ---
+try:
+    openai_api_key = get_secret("openai_api_key1").split(':')[1].replace('\"', '').replace('}', '')  
+    os.environ["OPENAI_API_KEY"] = openai_api_key
+except Exception as e:
+    print("Could not load OpenAI API key from AWS Secrets Manager:", e)
 
 load_dotenv()
-client = OpenAI()
+client = OpenAI(api_key=openai_api_key)
 
 # Dictionary to store conversations by session_id
 conversations = {}
@@ -18,32 +48,29 @@ def get_response(prompt="", content="", model="gpt-4.1-mini"):
         input=content
     )
     
-# CHECK RATE LIMITS FROM RESPONSE
     headers = getattr(response, 'headers', {})
     requests_left = headers.get('x-ratelimit-remaining-requests', 'Unknown')
     tokens_left = headers.get('x-ratelimit-remaining-tokens', 'Unknown')    
     
-    print(f"💬 Response: {response}")
+    print(f"Response: {response}")
     # WARN IF LOW
     if requests_left != 'Unknown' and int(requests_left) < 10:
-        print("⚠️ WARNING: Less than 10 requests remaining!")
+        print(" WARNING: Less than 10 requests remaining!")
     
     if tokens_left != 'Unknown' and int(tokens_left) < 1000:
-        print("⚠️ WARNING: Less than 1000 tokens remaining!")
+        print("WARNING: Less than 1000 tokens remaining!")
 
-    return response
+    return response.output_text
 
 def get_conversation(session_id):
     """Get conversation history for a specific session"""
     return conversations.get(session_id, [])
 
 def clear_conversation(session_id):
-    """Clear conversation history for a specific session"""
     if session_id in conversations:
         del conversations[session_id]
 
 def get_gamescript(session_id="default"):
-    """Get user-specific game script"""
     try:
         # Each user gets their own game file
         user_game_file = f"static/js/users/game_{session_id}.js"
@@ -114,6 +141,9 @@ def get_llm_response(context="", user_message="", session_id="default", user_id=
         for m in conversations[session_id] if "role" in m and "content" in m
     ]
     
+    
+    
+    
     response = client.responses.create(
         model="gpt-4.1-mini",
         instructions="You are a JavaScript and Phaser.js coding assistant. You are helping a game developer implement mechanics. Provide clear, working code solutions and explanations.",
@@ -132,15 +162,15 @@ def get_llm_response(context="", user_message="", session_id="default", user_id=
     requests_left = headers.get('x-ratelimit-remaining-requests', 'Unknown')
     tokens_left = headers.get('x-ratelimit-remaining-tokens', 'Unknown')    
     
-    print(f"💬 Response: {response}")
+    print(f"Response: {response}")
     # WARN IF LOW
     if requests_left != 'Unknown' and int(requests_left) < 10:
-        print("⚠️ WARNING: Less than 10 requests remaining!")
+        print("WARNING: Less than 10 requests remaining!")
     
     if tokens_left != 'Unknown' and int(tokens_left) < 1000:
-        print("⚠️ WARNING: Less than 1000 tokens remaining!")
+        print("WARNING: Less than 1000 tokens remaining!")
         
-    return response
+    return response.output_text
 
 def get_react_response(context="", user_message="", session_id="default", user_id=None):
     # Initialize conversation for new sessions
@@ -155,6 +185,17 @@ def get_react_response(context="", user_message="", session_id="default", user_i
         "content": user_message
     })
     
+    # Calculate total length of all conversation content for this user/session
+    total_token_length = sum(
+        count_tokens(content=msg.get("content", "")) for msg in conversations[session_id] if "content" in msg
+    )
+    print(f"Total token length for session {session_id}: {total_token_length}")
+    
+    total_token_length = total_token_length + count_tokens(user_message)
+    
+    if total_token_length > MAX_TOKENS:
+        return {"error": "Your conversation is too long for the AI to process. Please start a new chat using the clear chat button. This will reset the conversation and allow you to continue. If you have any important information, please copy it before clearing the chat."}
+    
     # Initialize conversation context for this ReAct session
     react_context = [user_message]
     final_response = None
@@ -168,7 +209,7 @@ def get_react_response(context="", user_message="", session_id="default", user_i
     
     # ReAct loop
     for step in range(3):
-        print(f"🔄 ReAct Step {step + 1}")
+        print(f"ReAct Step {step + 1}")
         
         # Get reasoning with accumulated context
         reasoning_response = reasoning_step(react_context)
@@ -193,7 +234,7 @@ def get_react_response(context="", user_message="", session_id="default", user_i
             react_context.append(f"Tool Results: {tool_summary}")
         else:
             # No more tools needed, break early
-            print("✅ No tools requested, proceeding to final answer")
+            print("No tools requested, proceeding to final answer")
             break
     
         # Generate final response with all context
@@ -203,10 +244,12 @@ def get_react_response(context="", user_message="", session_id="default", user_i
             accumulated_data
         )
         
-        final_response_confidence = final_response.output_text.split("Confidence:")[1].strip()
+        final_response, final_response_confidence = final_response.output_text.split("Confidence:")
         final_response_confidence = float(final_response_confidence) if final_response_confidence.replace('.', '', 1).isdigit() else 0.0
         if final_response_confidence < 0.5:
             print("⚠️ Low confidence in final response, continuing ReAct loop")
+            print(f"Confidence score: {final_response_confidence}")
+            print(f"Final response: {final_response}")
             continue
         elif final_response_confidence >= 0.5:
             print("✅ High confidence in final response, breaking ReAct loop")
@@ -215,7 +258,7 @@ def get_react_response(context="", user_message="", session_id="default", user_i
     # Store conversation
     conversations[session_id].append({
         "role": "assistant",
-        "response": final_response.output_text,
+        "response": final_response,
         "timestamp": datetime.now().isoformat()
     })
     
@@ -332,7 +375,6 @@ Keep the analysis concise but thorough. Focus on practical feedback."""
     return f"AI Code Analysis:\n\n{response.output_text}"
 
 
-import requests
 
 def search_phaser_docs(query: str) -> str:
     """Search Phaser.js documentation using web search."""
@@ -463,4 +505,10 @@ Confidence: [Your confidence in the answer from 0 to 1.0, where 1 is very confid
         input=context_str
     )
     
+    
     return response
+
+def count_tokens(content=""):
+    encoding = tiktoken.get_encoding("o200k_base")
+    tokens = encoding.encode(content)
+    return len(tokens)

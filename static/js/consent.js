@@ -1,5 +1,3 @@
-// consent.js - moved from index.html
-
 function toggleSubmit() {
     const consentYes = document.getElementById('consent-yes').checked;
     const dataYes = document.getElementById('data-yes').checked;
@@ -22,8 +20,6 @@ document.getElementById('agree-btn').addEventListener('click', function(event) {
         alert('You must consent to both participation and data collection to proceed with the study.');
     } 
 });
-
-// Set today's date as default
 
 document.addEventListener('DOMContentLoaded', function() {
     const dateField = document.getElementById('date');

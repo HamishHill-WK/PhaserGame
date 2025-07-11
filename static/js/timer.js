@@ -1,4 +1,3 @@
-// Experiment Timer - 1 hour countdown
 class ExperimentTimer {
     constructor() {
         this.duration = 60 * 60; // 1 hour in seconds
@@ -91,8 +90,8 @@ class ExperimentTimer {
 
         // Redirect to debrief page after a short delay
         setTimeout(() => {
-            alert('Time is up! The experiment is complete. You will now be redirected to the debrief page.');
-            window.location.href = '/debrief';
+            alert('Time is up! The experiment is complete. You will now be redirected to the next page.');
+            window.location.href = '/sus';
         }, 1000);
     }
 
@@ -112,12 +111,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const isTutorial = window.location.pathname.includes('tutorial');
     if (document.getElementById('experiment-timer') && !isDevelopment && !isTutorial) {
         window.experimentTimer = new ExperimentTimer();
-    } else if (isDevelopment) {
-        // Hide timer display in dev mode
-        const timerElement = document.getElementById('experiment-timer');
-        if (timerElement) {
-            timerElement.style.display = 'none';
+    } else if (isDevelopment && document.getElementById('experiment-timer')) {
+        // Show timer but do not start countdown in dev mode
+        const timerText = document.getElementById('timer-text');
+        if (timerText) {
+            timerText.textContent = '60:00';
         }
+        // Optionally, add a class to indicate dev mode
+        document.getElementById('experiment-timer').style.opacity = '0.7';
     } else if (isTutorial) {
         // Show timer but do not start countdown; set to 60:00
         const timerText = document.getElementById('timer-text');

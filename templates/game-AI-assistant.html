@@ -48,7 +48,7 @@
                             <label class="checkbox-item">
                                 <input type="checkbox" id="task1"> Score System
                                 <div class="checkbox-description" id="task1-description">
-                                    <p><strong>Score System:</strong> Score should increase when blocks are broken, current score should be displayed in text on screen.</p>
+                                    <p>Score should increase when blocks are broken, current score should be displayed in text on screen.</p>
                                 </div>
                             </label>
                         </div>
@@ -56,7 +56,7 @@
                             <label class="checkbox-item">
                                 <input type="checkbox" id="task2"> Reset Blocks
                                 <div class="checkbox-description" id="task2-description">
-                                    <p><strong>Reset Blocks:</strong> Once all blocks have been cleared the level should restart.</p>
+                                    <p>Once all blocks have been cleared the level should restart.</p>
                                 </div>
                             </label>
                         </div>
@@ -64,7 +64,7 @@
                             <label class="checkbox-item">
                                 <input type="checkbox" id="task3"> Increase Ball Speed
                                 <div class="checkbox-description" id="task3-description">
-                                    <p><strong>Increase Ball Speed:</strong> Ball should speed up as blocks decrease.</p>
+                                    <p>Ball should speed up as blocks decrease.</p>
                                 </div>
                             </label>
                         </div>
@@ -72,14 +72,14 @@
                             <label class="checkbox-item">
                                 <input type="checkbox" id="task4"> Lives System
                                 <div class="checkbox-description" id="task4-description">
-                                    <p><strong>Lives System:</strong> Player should have 3 lives, lives should be lost if the ball falls off the bottom of the screen.</p>
+                                    <p>Player should have 3 lives, lives should be lost if the ball falls off the bottom of the screen.</p>
                                 </div>
                             </label>
                         </div>                        <div class="dropdown-content-container" id="task5-container">
                             <label class="checkbox-item">
                                 <input type="checkbox" id="task5"> Death Screen
                                 <div class="checkbox-description" id="task5-description">
-                                    <p><strong>Death Screen:</strong> If the ball falls off the bottom of the screen when the player has 0 lives then a game over message should be displayed on screen. If a score system has been implemented then the final score should be shown with the game over message.</p>
+                                    <p>If the ball falls off the bottom of the screen when the player has 0 lives then a game over message should be displayed on screen. If a score system has been implemented then the final score should be shown with the game over message.</p>
                                 </div>
                             </label>
                         </div>
@@ -87,7 +87,7 @@
                             <label class="checkbox-item">
                                 <input type="checkbox" id="task6"> Life Item Drop
                                 <div class="checkbox-description" id="task6-description">
-                                    <p><strong>Life Item Drop:</strong> Random chance that blocks will drop a life pickup when broken. Pickups should fall down the screen and increase lives by 1 when the player touches them.</p>
+                                    <p>Random chance that blocks will drop a life pickup when broken. Pickups should fall down the screen and increase lives by 1 when the player touches them.</p>
                                 </div>
                             </label>
                         </div>
@@ -109,7 +109,7 @@
                         </div>
                     </div>
                 </div>                <div class="dropdown-current-task" id="current-task">
-                    <span id="current-task-text">Current Task: Score System</span>
+                    <span id="current-task-text">Current Task: Score System Score should increase when blocks are broken, current score should be displayed in text on screen.</span>
                 </div>
                 <div class="tabs" id="tabs">
                     <button id="code-button" class="tab-button not-active" onclick="switchTab('editor')" data-tab="editor">Code</button>
@@ -124,7 +124,7 @@
             <div class="console-container tab-content" id="console-container">
                 <div style="display: flex; align-items: center; margin-bottom: 8px;">
                     <input type="checkbox" id="extended-thinking-checkbox" style="margin-right: 6px;">
-                    <label for="extended-thinking-checkbox" style="margin: 0; font-weight: 500;">Enable Extended Thinking (AI will take more time to reason)</label>
+                    <label for="extended-thinking-checkbox" style="margin: 0; font-weight: 500;">Enable Extended Thinking (AI will take more time to reason and use tools)</label>
                 </div>
                 <div class="console-output" id="console-output"></div>
                 <form id="input-form">
@@ -138,7 +138,7 @@
         <div id="finish-confirm-modal" style="display:none; position:fixed; left:0; top:0; width:100vw; height:100vh; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
             <div style="background:#fff; padding:32px; border-radius:8px; max-width:400px; margin:auto; text-align:center;">
                 <p id="finish-modal-message">You have not completed all tasks. Are you sure you want to finish the experiment early?</p>
-                <button id="proceed-debrief-btn" class="tab-button">Proceed to Debrief</button>
+                <button id="proceed-debrief-btn" class="tab-button">Proceed to next step</button>
                 <button id="continue-experiment-btn" class="tab-button">Return to Experiment</button>
             </div>
         </div>   
@@ -146,6 +146,7 @@
         window.assigned_condition = "{{ assigned_condition|default('ai') }}";
 
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('Experiment condition:', window.assigned_condition);
             if (window.assigned_condition === "control") {
                 // Hide AI chat (console-container)
                 document.getElementById('console-container').style.display = 'none';
@@ -169,13 +170,20 @@
         }
         document.getElementById('finish-experiment-btn').addEventListener('click', function() {
             if (allTasksComplete()) {
-                window.location.href = "{{ url_for('debrief') }}";
+                if (window.location.pathname.includes('gameAIassistant')) {
+             //       navigator.sendBeacon('/log-experiment-leave');
+                        console.log("Experiment leave logged");
+                }
+                window.location.href = "{{ url_for('sus') }}";
             } else {
                 document.getElementById('finish-confirm-modal').style.display = 'flex';
             }
         });
         document.getElementById('proceed-debrief-btn').addEventListener('click', function() {
-            window.location.href = "{{ url_for('debrief') }}";
+            //if (window.location.pathname.includes('gameAIassistant')) {
+            //    navigator.sendBeacon('/log-experiment-leave');
+            //}
+            window.location.href = "{{ url_for('sus') }}";
         });
         document.getElementById('continue-experiment-btn').addEventListener('click', function() {
             document.getElementById('finish-confirm-modal').style.display = 'none';
@@ -234,7 +242,16 @@
                 });
             }
         });
-        </script>
+        let experimentLeaveLogged = false;
+        window.addEventListener('beforeunload', function (e) {
+            // Attempt to save final code when user leaves the experiment page
+            if (experimentLeaveLogged) return;
+            if (window.location.pathname.includes('gameAIassistant')) {
+                experimentLeaveLogged = true;
+                navigator.sendBeacon('/log-experiment-leave');
+            }
+        });
+    </script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/aistyle.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>

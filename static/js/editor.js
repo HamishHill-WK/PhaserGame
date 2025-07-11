@@ -1,6 +1,5 @@
 let secureExecutor;
 
-// Initialize the Ace editor
 document.addEventListener('DOMContentLoaded', function() {
 
     secureExecutor = new SecureGameExecutor();

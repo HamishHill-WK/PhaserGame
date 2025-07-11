@@ -125,8 +125,8 @@
     margin-bottom: 10px;
     white-space: pre-wrap;
     min-height: 100px;
-    max-height: none; /* Allow it to grow within flex container */
-    scroll-behavior: smooth; /* Smooth scrolling */
+    max-height: none; 
+    scroll-behavior: smooth; 
 }
 
 #input-form{
@@ -162,6 +162,7 @@
     border-radius: 4px;
     cursor: pointer;
     font-weight: bold;
+    max-width: fit-content;
 }
 
 .tab-button:hover {
@@ -185,7 +186,6 @@
     border: 1px solid #424242;
 }
 
-/* Message styling for chat */
 .player-input {
     background-color: #e3f2fd;
     color: #1976d2;
@@ -194,6 +194,10 @@
     border-radius: 8px;
     border-left: 4px solid #1976d2;
     font-family: monospace;
+}
+
+.current-task-text {
+    min-width: 220px;
 }
 
 .llm-response {

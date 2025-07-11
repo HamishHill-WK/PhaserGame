@@ -80,7 +80,6 @@ inputForm.addEventListener('submit', function(e) {
         }
     })
     .catch(error => {
-        // Remove loading message
         const loadingElem = document.getElementById(loadingId);
         if (loadingElem) loadingElem.remove();
         console.error('Error:', error);
@@ -91,8 +90,6 @@ inputForm.addEventListener('submit', function(e) {
 // Auto-resize textarea
 document.addEventListener('DOMContentLoaded', function() {
     const textarea = document.getElementById('user-input');
-    
-    // ...existing code...
     function autoResize() {
         const textarea = document.getElementById('user-input');
         const scrollHeight = textarea.scrollHeight;

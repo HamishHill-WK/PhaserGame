@@ -33,7 +33,6 @@ function toggleAIUsage() {
     } else {
         aiUsageGroup.style.display = 'none';
         aiDetailsGroup.style.display = 'none';
-        // Clear AI usage checkboxes
         document.querySelectorAll('input[name="ai_usage"]').forEach(cb => cb.checked = false);
         document.getElementById('ai_usage_details').value = '';
     }
@@ -60,9 +59,6 @@ function togglePhaserUsage(){
         phaserUsageGroup.style.display = 'none';
     }
 }
-
-// Move inline JS from survey.html to survey.js
-
 // Programming fields toggle
 function toggleProgrammingFields() {
     var progExp = document.getElementById('programming_experience_detailed').value;
@@ -71,11 +67,6 @@ function toggleProgrammingFields() {
     document.getElementById('programming-years-group').style.display = show ? 'block' : 'none';
     document.getElementById('programming-languages-group').style.display = show ? 'block' : 'none';
 }
-document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('programming_experience_detailed').addEventListener('change', toggleProgrammingFields);
-    document.getElementById('game_dev_experience_detailed').addEventListener('change', toggleProgrammingFields);
-    toggleProgrammingFields();
-});
 
 function toggleProgrammingFields() {
     var progExp = document.getElementById('programming_experience_detailed').value;
@@ -84,20 +75,21 @@ function toggleProgrammingFields() {
     document.getElementById('programming-years-group').style.display = show ? 'block' : 'none';
     document.getElementById('programming-languages-group').style.display = show ? 'block' : 'none';
 }
-document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('programming_experience_detailed').addEventListener('change', toggleProgrammingFields);
-    document.getElementById('game_dev_experience_detailed').addEventListener('change', toggleProgrammingFields);
-    toggleProgrammingFields();
-});
 
-// Game engines toggle
 function toggleGameEngines() {
     var exp = document.getElementById('game_dev_experience_detailed').value;
     document.getElementById('game-engines-group').style.display = (exp && exp !== 'none') ? 'block' : 'none';
 }
+
 document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('game_dev_experience_detailed').addEventListener('change', toggleGameDevPosition);
+    document.getElementById('programming_experience_detailed').addEventListener('change', toggleProgrammingPosition);
+    document.getElementById('programming_experience_detailed').addEventListener('change', toggleProgrammingFields);
+    document.getElementById('game_dev_experience_detailed').addEventListener('change', toggleProgrammingFields);
     document.getElementById('game_dev_experience_detailed').addEventListener('change', toggleGameEngines);
-    toggleGameEngines();
+    document.getElementById('is_self_taught').addEventListener('change', toggleSelfTaughtFields);
+    toggleSelfTaughtFields();
+    toggleProgrammingFields();
 });
 
 // Self-taught toggle
@@ -105,10 +97,6 @@ function toggleSelfTaughtFields() {
     var isSelfTaught = document.getElementById('is_self_taught').checked;
     document.getElementById('self-taught-details-group').style.display = isSelfTaught ? 'block' : 'none';
 }
-document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('is_self_taught').addEventListener('change', toggleSelfTaughtFields);
-    toggleSelfTaughtFields();
-});
 
 // Course programming experience toggle
 function toggleCourseProgrammingExperience() {
@@ -181,7 +169,6 @@ function toggleCourseRelated() {
         courseRelatedGroup.style.display = 'block';
     } else {
         courseRelatedGroup.style.display = 'none';
-        // Optionally clear selection
         const radios = courseRelatedGroup.querySelectorAll('input[type="radio"]');
         radios.forEach(r => r.checked = false);
     }

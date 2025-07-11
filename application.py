@@ -1,19 +1,19 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for, session
+from flask import Flask, render_template, request, jsonify, redirect, url_for, session, Response
+from functools import wraps
 import os 
 import json
 from datetime import datetime
 import assistant
 import secval
 import uuid
-from data import db, Survey, ExperimentData, User, configure_database, is_development_mode, TaskCheck, CodeChange
+from data import db, Survey, ExperimentData, User, configure_database, is_development_mode, TaskCheck, CodeChange, SUS
 from dotenv import load_dotenv 
 import difflib
 from dateutil.parser import isoparse
 import traceback
-from sqlalchemy import inspect
-from urllib.parse import urlparse
-import traceback
-from application_helper import is_development_mode, assign_balanced_condition, get_int_user_id, categorize_expertise_from_existing_survey, count_js_errors
+from application_helper import is_development_mode, assign_balanced_condition, categorize_expertise_from_existing_survey
+import re
+
 load_dotenv()
 
 validator = secval.SimpleSecurityValidator()
@@ -22,45 +22,42 @@ application.secret_key = os.environ.get("SECRET_KEY", "your_secret_key")
 
 try:
     configure_database(application)
-    print("Database configured successfully!")
 except Exception as e:
     print(f"Error configuring database: {e}")
 
 @application.route("/gameAIassistant", methods=["GET", "POST"])
 def gameAIassistant():
-    # Use existing session ID from survey flow or create new one
     session_id = session.get('session_id')
     if not session_id:
         session['session_id'] = f"session_{uuid.uuid4().hex[:12]}"
-    # Get assigned_condition from session or user
     assigned_condition = session.get('assigned_condition')
     if not assigned_condition:
         user_id = session.get('user_id')
+        print(f"User ID from session: {user_id}")
         assigned_condition = None
         if user_id:
             user = User.query.get(user_id)
             if user and hasattr(user, 'assigned_condition'):
                 assigned_condition = user.assigned_condition
                 session['assigned_condition'] = assigned_condition
+                print(f"session['assigned_condition'] set to {session['assigned_condition']}")
+                print(f"User {user_id} assigned to condition: {assigned_condition}")
     return render_template('game-AI-assistant.html', assigned_condition=assigned_condition)
 
 @application.route("/")
 @application.route("/index")
 def index():
-    # Generate session ID for user tracking across all pages
     if 'session_id' not in session:
         session['session_id'] = f"session_{uuid.uuid4().hex[:12]}"
-    # Generate participant code if not present, but do NOT create user in DB here
     participant_code = None
     if 'participant_code' not in session:
-        participant_code_val = f"P{uuid.uuid4().hex[:8].upper()}"
+        participant_code_val = f"P{uuid.uuid4().hex.upper()}"
         session['participant_code'] = participant_code_val
         participant_code = participant_code_val
     else:
         participant_code = session['participant_code']
     return render_template('index.html', participant_code=participant_code)
 
-# Add the survey route
 @application.route("/opensurvey", methods=["GET", "POST"])
 def opensurvey():
     # Ensure session ID exists from consent page
@@ -73,7 +70,6 @@ def opensurvey():
     
 @application.route("/survey")
 def survey():
-    # Ensure session ID consistency
     session_id = session.get('session_id')
     if not session_id:
         session['session_id'] = f"session_{uuid.uuid4().hex[:12]}"
@@ -84,12 +80,13 @@ def survey():
 @application.route("/save-code", methods=["POST"])
 def save_code():
     try:
+        print("Received request to save code")
         data = request.get_json()
         code = data.get("code")
         session_id = session.get('session_id', 'unknown')
-        user_id = get_int_user_id(session)
+        user_id = session['user_id']
+        print(f"Session ID: {session_id}, User ID: {user_id}")
         
-        # Should be:
         validation_result = validator.validate(code)
         is_safe = validation_result['is_safe']
         violations = validation_result['violations']
@@ -103,24 +100,22 @@ def save_code():
         
         # Validate file name to prevent directory traversal
         if file_name != "game.js":
+            print(f"Invalid file name: {file_name}")
             return jsonify({"success": False, "error": "Invalid file name"})
 
-        # Save to user-specific file
+        print(f"Saving code for session {session_id} with user ID {user_id} and file name {file_name}")
         user_file_path = os.path.join(application.static_folder, "js", "users", f"game_{session_id}.js")
         os.makedirs(os.path.dirname(user_file_path), exist_ok=True)
         
-        # --- Compute code diff for logging ---
+        print(f"User file path: {user_file_path}")
+        
         prev_code = ""
         if os.path.exists(user_file_path):
+            print(f"Loading previous code from {user_file_path}")
             with open(user_file_path, "r", encoding="utf-8") as f:
                 prev_code = f.read()
         prev_lines = prev_code.split('\n') if prev_code else []
         diff = list(difflib.unified_diff(prev_lines, code_lines, lineterm=''))        
-        last_error_count = session.get('error_count', 0)
-        
-        error_count = count_js_errors(code) or 0
-        if error_count != 0:
-            session['error_count'] = error_count
 
         last_ai_usage = session.get('last_ai_usage')
         last_code_save = session.get('last_code_save')
@@ -135,17 +130,13 @@ def save_code():
                     used_ai = True  # No previous save, but AI was used
             except Exception:
                 used_ai = False
-        # Only log if there are changes
+                
         if user_id and diff:
-            # Log code change to CodeChange table
-            # Get previous and new code as strings
             prev_code_str = '\n'.join(prev_lines)
             new_code_str = code
-            # Calculate line changes
             lines_changed = len(diff)
             lines_added = sum(1 for d in diff if d.startswith('+') and not d.startswith('+++'))
             lines_removed = sum(1 for d in diff if d.startswith('-') and not d.startswith('---'))
-            # Optionally, you could track errors_before/errors_after if available
             code_change = CodeChange(
                 user_id=user_id,
                 participant_code=session.get('participant_code', 'unknown'),
@@ -154,8 +145,6 @@ def save_code():
                 lines_changed=lines_changed,
                 lines_added=lines_added,
                 lines_removed=lines_removed,
-                errors_before=last_error_count,
-                errors_after=error_count,
                 timestamp=datetime.now()
             )
             if not is_development_mode():
@@ -163,11 +152,12 @@ def save_code():
                 db.session.commit()
             else:
                 print("[DEV] Skipping DB commit for code_change (development mode)")
+                
         
         # Save new code to file
         with open(user_file_path, "w", encoding="utf-8", newline='') as f:
             f.write(code)
-        
+
         # Log code save action to experiment data
         if user_id:
             experiment_data = ExperimentData(
@@ -189,8 +179,9 @@ def save_code():
                 db.session.commit()
             else:
                 print("[DEV] Skipping DB commit for experiment_data (development mode)")
+        else:
+            print("User ID not found in session, skipping experiment data logging")
         
-        # Update last_code_save timestamp in session
         session['last_code_save'] = datetime.now().isoformat()
         
         return jsonify({"success": True})
@@ -205,7 +196,8 @@ def log_error():
         
         # Get session ID and user ID for tracking
         session_id = session.get('session_id', 'unknown')
-        user_id = get_int_user_id(session)
+        user_id = session.get('user_id')
+        print(f"[DEBUG] Accessed user_id from session: {user_id}")
 
         # Generate a unique error code
         error_id = f"ERR-{uuid.uuid4().hex[:8]}"
@@ -236,27 +228,25 @@ def log_error():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
+
 @application.route("/LLMrequest", methods=["POST"])
 def LLMrequest():
     try:
         data = request.get_json()
         context = data.get("context", [])
-        print(f"Application.py: Context received: {context}")
         user_message = data.get("input", "")
         extended_thinking = data.get("extended_thinking", False)
-        # Get or create session ID
         session_id = session.get('session_id', f"session_{uuid.uuid4().hex[:12]}")
         if 'session_id' not in session:
             session['session_id'] = session_id
-        # Get user_id from session for tracking
         user_id = session.get('user_id')
-        # Ensure session ID is set  
+        print(f"[DEBUG] Accessed user_id from session: {user_id}")
         response = ""
         if extended_thinking:
             response = assistant.get_react_response(context, user_message, session_id, user_id)
         else:
             response = assistant.get_llm_response(context, user_message, session_id, user_id)
-        
+
         # Save user message and LLM response to ExperimentData
         if user_id:
             db.session.add(ExperimentData(
@@ -267,99 +257,93 @@ def LLMrequest():
                 timestamp=datetime.now(),
                 data=json.dumps({
                     "user_message": user_message,
-                    "llm_response": getattr(response, 'output_text', str(response)),
+                    "llm_response": response,
                     "extended_thinking": extended_thinking
                 })
             ))
             db.session.commit()
-        # Track last AI usage in session
         session['last_ai_usage'] = datetime.now().isoformat()
-        response_segments = {}
-        # Extract code between triple backticks if present
-        if "```" in response.output_text:
-            # Find all code blocks
-            code_blocks = []
-            parts = response.output_text.split("```")
-            for i, p in enumerate(parts):
-                print(f"\n\nApplication.py: Part {i}: {p}\n\n")
-                if "javascript" in p:
-                    # If the part contains 'javascript', it's likely a code block
-                    response_segments[i] = ["code", p.split("javascript")[1].strip()]
-                elif "json" in p:
-                    # If the part contains 'json', it's likely a code block
-                    response_segments[i] = ["code", p.split("json")[1].strip()]
-                    code_blocks.append(p.strip())
-                elif "js" in p:
-                    # If the part contains 'js', it's likely a code block
-                    response_segments[i] = ["code", p.split("js")[1].strip()]
-                    code_blocks.append(p.strip())
-                else:
-                    # Otherwise, it's just a regular text segment
-                    response_segments[i] = ["text", p.strip()]
-            # If we found code blocks, update the response
-            if code_blocks:
-                response = {
-                    "message": response_segments,
-                    "code": code_blocks
-                }
-        else:
-            # If no code blocks, just return the text response
-            response_segments[0] = ["text", response.output_text]
-        reponse_list = list(response_segments.values())
-        return jsonify(reponse_list)
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)})
 
+        segments = []
+        # Pattern matches ```lang\ncode``` or ```\ncode```
+        pattern = re.compile(r"```(\w+)?\n(.*?)```", re.DOTALL)
+        last_end = 0
+        for match in pattern.finditer(response):
+            # Add preceding text, if any
+            if match.start() > last_end:
+                text = response[last_end:match.start()].strip()
+                if text:
+                    segments.append(["text", text])
+            code = match.group(2).strip()
+            #lang = match.group(1) or ""
+            segments.append(["code", code])
+            last_end = match.end()
+        # Add any trailing text
+        if last_end < len(response):
+            text = response[last_end:].strip()
+            if text:
+                segments.append(["text", text])
+        if not segments:
+            segments.append(["text", response])
+
+
+        return jsonify(segments)
+    except Exception as e:
+        return jsonify(["text", text])
+    
+@application.route("/sus", methods=["GET", "POST"])
+def sus():
+    if request.method == "GET":
+        # Show SUS questionnaire
+        return render_template('sus.html')
+    
+    elif request.method == "POST":
+        try:
+            session_id = session.get('session_id', 'unknown')
+            user_id = session.get('user_id')
+            print(f"Received SUS submission for session {session_id} with user ID {user_id}")
+            if not user_id:
+                user_id = None            
+            # Get responses (1-5 scale)
+            responses = []
+            for i in range(1, 11):
+                response = request.form.get(f'q{i}', type=int)
+                if response is None or response < 1 or response > 5:
+                    return jsonify({"success": False, "error": f"Invalid response for question {i}"}), 400
+                responses.append(response)
+            
+            # Save to database
+            sus_data = SUS(
+                session_id=session_id,
+                user_id=user_id,
+                participant_code=session.get('participant_code', 'unknown'),
+                q1_use_frequently=responses[0],
+                q2_unnecessarily_complex=responses[1],
+                q3_easy_to_use=responses[2],
+                q4_need_technical_support=responses[3],
+                q5_functions_integrated=responses[4],
+                q6_too_much_inconsistency=responses[5],
+                q7_learn_quickly=responses[6],
+                q8_cumbersome_to_use=responses[7],
+                q9_felt_confident=responses[8],
+                q10_learn_lot_before_use=responses[9],
+                submitted_at=datetime.now()
+            )
+            
+            if not is_development_mode():
+                db.session.add(sus_data)
+                db.session.commit()
+            
+            return redirect(url_for('debrief'))
+            
+        except Exception as e:
+            return jsonify({"success": False, "error": str(e)}), 500
+        
 @application.route("/debrief", methods=["GET", "POST"])
 def debrief():
     # Track experiment completion
     session_id = session.get('session_id', 'unknown')
-    user_id = get_int_user_id(session)
-
-    # Save final game.js code to DB at experiment completion
-    if user_id:
-        try:
-            user_file_path = os.path.join(application.static_folder, "js", "users", f"game_{session_id}.js")
-            if os.path.exists(user_file_path):
-                with open(user_file_path, "r", encoding="utf-8") as f:
-                    code = f.read()
-                experiment_data = ExperimentData(
-                    session_id=session_id,
-                    user_id=user_id,
-                    user_action="final_code_save",
-                    timestamp=datetime.now(),
-                    data=json.dumps({
-                        "file_name": f"game_{session_id}.js",
-                        "final_code": code,
-                        "code_length": len(code),
-                        "lines_count": len(code.split('\n'))
-                    })
-                )
-                if not is_development_mode():
-                    db.session.add(experiment_data)
-                    db.session.commit()
-                else:
-                    print("[DEV] Skipping DB commit for final_code_save (development mode)")
-        except Exception as e:
-            print(f"[ERROR] Failed to save final game.js code: {e}")
-    if user_id and request.method == "GET":
-        # Log that user reached debrief (experiment completion)
-        experiment_data = ExperimentData(
-            session_id=session_id,
-            user_id=user_id,
-            user_action="experiment_completed",
-            timestamp=datetime.now(),
-            data=json.dumps({
-                "reached_debrief": True,
-                "completion_timestamp": datetime.now().isoformat()
-            })
-        )
-        # Only commit to DB if not in development mode
-        if not is_development_mode():
-            db.session.add(experiment_data)
-            db.session.commit()
-        else:
-            print("[DEV] Skipping DB commit for experiment_data (development mode)")
+    user_id = session.get('user_id')
     # Show participant code if available
     participant_code = None
     # Always try to get from session first
@@ -369,6 +353,15 @@ def debrief():
         user = User.query.get(user_id)
         if user:
             participant_code = user.participant_code
+            
+    user_file_path = os.path.join(application.static_folder, "js", "users", f"game_{session_id}.js")
+    try:
+        if os.path.exists(user_file_path):
+            os.remove(user_file_path)
+            print(f"Deleted user game.js file: {user_file_path}")
+    except Exception as e:
+        print(f"Error deleting user game.js file: {e}")
+
     return render_template('debrief.html', participant_code=participant_code)
 
 @application.route("/clear-session", methods=["POST"])
@@ -385,7 +378,8 @@ def save_final_game_code():
     """Save the user's final game.js script to the database at experiment completion."""
     try:
         session_id = session.get('session_id', 'unknown')
-        user_id = get_int_user_id()
+        user_id = session.get('user_id')
+        print(f"[DEBUG] Accessed user_id from session: {user_id}")
         if not user_id:
             return jsonify({"success": False, "error": "No user_id in session"}), 400
         user_file_path = os.path.join(application.static_folder, "js", "users", f"game_{session_id}.js")
@@ -457,15 +451,11 @@ def submit_survey():
         programming_proffessional_level = request.form.get('programming_position')
         programming_experience_years = request.form.get('programming_years', type=float)
         programming_languages = request.form.getlist('languages')
-        
         used_phaser = request.form.get('used_phaser') == 'yes'
-        phaser_experience_description = request.form.get('phaser_details', '')
+        
         uses_ai_tools = request.form.get('uses_ai_tools') == 'yes'
         ai_usage_details = request.form.getlist('ai_usage')
-        ai_usage_description = request.form.get('ai_usage_details', '')
-        experience_description = request.form.get('experience_details', '')
-
-        # Student/graduate/self-taught fields
+        
         is_student = bool(request.form.get('is_student'))
         is_graduate = bool(request.form.get('is_graduate'))
         is_self_taught = bool(request.form.get('is_self_taught'))
@@ -476,7 +466,6 @@ def submit_survey():
         undergrad_year = request.form.get('undergrad_year')
         course_related = request.form.get('course_related') == 'yes'
 
-        # Save to database with session tracking
         survey_data = Survey(
             session_id=session_id,
             participant_code=participant_code,
@@ -489,11 +478,8 @@ def submit_survey():
             programming_proffessional_level=programming_proffessional_level,
             programming_languages=json.dumps(programming_languages) if programming_languages else '',
             used_phaser=used_phaser,
-            phaser_experience_description=phaser_experience_description,
             uses_ai_tools=uses_ai_tools,
             ai_usage_details=json.dumps(ai_usage_details) if ai_usage_details else '',
-            ai_tools_description=ai_usage_description,
-            experience_description=experience_description,
             is_student=is_student,
             is_graduate=is_graduate,
             is_self_taught=is_self_taught,
@@ -509,6 +495,8 @@ def submit_survey():
         
         expertise = categorize_expertise_from_existing_survey(survey_data)
         assigned_condition = assign_balanced_condition(User, expertise)
+        
+        session["assigned_condition"] = assigned_condition
 
         # Create the user in the database
         user = User(
@@ -522,6 +510,8 @@ def submit_survey():
             db.session.add(user)
             db.session.commit()
             survey_data.user_id = user.id  # Link survey data to user
+            session['user_id'] = user.id  # Store user ID in session
+            print(f"[DEBUG] Set user_id in session: {user.id}")
             db.session.add(survey_data)
             db.session.commit()
         else:
@@ -549,9 +539,8 @@ def log_consent():
         signed_date_form = request.form.get('date', datetime.now().isoformat())
         participant_code_val = session.get('participant_code')
         if not participant_code_val:
-            participant_code_val = f"P{uuid.uuid4().hex[:8].upper()}"
+            participant_code_val = f"P{uuid.uuid4().hex.upper()}"
             session['participant_code'] = participant_code_val
-        # Store the user object in the session for use on the survey page
         session['anonymous_user'] = {
             'participant_code': participant_code_val,
             'signed_date': signed_date_form
@@ -561,12 +550,32 @@ def log_consent():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
+def check_auth(username, password):
+    # Set your admin username and password here (or load from env)
+    return username == 'admin' and password == 'yourpassword'
+
+def authenticate():
+    return Response(
+        'Could not verify your access to this page.\n'
+        'You must provide valid credentials.', 401,
+        {'WWW-Authenticate': 'Basic realm="Login Required"'})
+
+def requires_auth(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        auth = request.authorization
+        if not auth or not check_auth(auth.username, auth.password):
+            return authenticate()
+        return f(*args, **kwargs)
+    return decorated
+
 @application.route("/init-db")
+#@requires_auth
 def init_database():
     """Initialize database tables - REMOVE THIS ROUTE AFTER USE"""
     try:
         print("Creating database tables...")
-        db.drop_all()  # Drop existing tables first
+        db.drop_all()  
         db.create_all()
         print("Database tables created successfully!")
         return """
@@ -606,6 +615,7 @@ def log_task_check():
         data = request.get_json()
         task_id = data.get('task_id')
         user_id = session.get('user_id')
+        print(f"[DEBUG] Accessed user_id from session: {user_id}")
         session_id = session.get('session_id', 'unknown')
         if not user_id:
             return jsonify({'success': False, 'error': 'No user_id in session'}), 400
@@ -626,7 +636,8 @@ def log_game_reload():
     """Log when the user reloads the game window."""
     try:
         session_id = session.get('session_id', 'unknown')
-        user_id = get_int_user_id(session)
+        user_id = session.get('user_id')
+        print(f"[DEBUG] Accessed user_id from session: {user_id}")
         timestamp = datetime.now()
         db_entry = ExperimentData(
             session_id=session_id,
@@ -646,6 +657,49 @@ def log_game_reload():
             print("[DEV] Skipping DB commit for game_reload (development mode)")
         return jsonify({"success": True})
     except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@application.route("/log-experiment-leave", methods=["POST"])
+def log_experiment_leave():
+    """Save the user's final game.js script to the database when the user leaves the experiment page."""
+    print("Logging experiment leave...")
+    try:
+        session_id = session.get('session_id', 'unknown')
+        user_id = session.get('user_id')
+        participant_code = session.get('participant_code', 'unknown')
+        print(f"[DEBUG] Session ID: {session_id}, Participant Code: {participant_code}")
+        print(f"[DEBUG] Accessed user_id from session: {user_id}")
+        if not user_id:
+            return jsonify({"success": False, "error": "No user_id in session"}), 400
+        user_file_path = os.path.join(application.static_folder, "js", "users", f"game_{session_id}.js")
+        if not os.path.exists(user_file_path):
+            print(f"[DEBUG] User game.js file not found at {user_file_path}")
+            return jsonify({"success": False, "error": "User game.js file not found"}), 404
+        with open(user_file_path, "r", encoding="utf-8") as f:
+            print(f"[DEBUG] Reading user game.js file at {user_file_path}")
+            code = f.read()
+        experiment_data = ExperimentData(
+            session_id=session_id,
+            user_id=user_id,
+            user_action="final_code_save",
+            participant_code=participant_code,
+            timestamp=datetime.now(),
+            data=json.dumps({
+                "file_name": f"game_{session_id}.js",
+                "final_code": code,
+                "code_length": len(code),
+                "lines_count": len(code.split('\n'))
+            })
+        )
+        if not is_development_mode():
+            db.session.add(experiment_data)
+            db.session.commit()
+            print(f"[DEBUG] Saved final code for user {user_id} in session {session_id}")
+        else:
+            print("[DEV] Skipping DB commit for final_code_save (development mode)")
+        return jsonify({"success": True})
+    except Exception as e:
+        print(f"[ERROR] Failed to log experiment leave: {str(e)}")
         return jsonify({"success": False, "error": str(e)})
 
 if __name__ == "__main__":

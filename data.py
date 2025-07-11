@@ -12,8 +12,6 @@ def is_development_mode():
 
 def configure_database(application):
     """Configure database settings and initialize with Flask application"""
-    #DATABASE_URL = os.environ.get('DATABASE_URL')
-    #if not DATABASE_URL:
     rds_hostname = os.environ.get('RDS_HOSTNAME')
     rds_port = os.environ.get('RDS_PORT', '5432')
     rds_db_name = os.environ.get('RDS_DB_NAME')
@@ -44,8 +42,8 @@ def configure_database(application):
             }
     else:
         raise ValueError("No database configuration found. Please set DATABASE_URL or RDS environment variables.")
-    print(f"Final DATABASE_URL: {DATABASE_URL}")
-    print(application.config)
+    #'print(f"Final DATABASE_URL: {DATABASE_URL}")
+   # print(application.config)
     db.init_app(application)
     return db
 
@@ -54,6 +52,7 @@ class User(db.Model):
     participant_code = db.Column(db.String(80), unique=True, nullable=False) #shown to the user so they can request their data is removed
     assigned_condition = db.Column(db.String(20), nullable=True)  # 'ai' or 'control'
     expertise_level = db.Column(db.String(100), nullable=True)  # e.g., Beginner, Intermediate, Advanced
+    signed_date = db.Column(db.DateTime, default=datetime.utcnow)  # Date when user signed up
 
 class Survey(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -111,8 +110,6 @@ class CodeChange(db.Model):
     lines_added = db.Column(db.Integer, nullable=False)
     lines_removed = db.Column(db.Integer, nullable=False)
     
-    errors_before = db.Column(db.Integer, nullable=False)
-    errors_after = db.Column(db.Integer, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
 class TaskCheck(db.Model):
@@ -122,3 +119,21 @@ class TaskCheck(db.Model):
     session_id = db.Column(db.String(100), nullable=False)
     task_id = db.Column(db.String(50), nullable=False)  # e.g., 'task1', 'task2', etc.
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    
+class SUS(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    session_id = db.Column(db.String(100), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    participant_code = db.Column(db.String(80), nullable=False)
+    
+    q1_use_frequently = db.Column(db.Integer, nullable=False)
+    q2_unnecessarily_complex = db.Column(db.Integer, nullable=False)
+    q3_easy_to_use = db.Column(db.Integer, nullable=False)
+    q4_need_technical_support = db.Column(db.Integer, nullable=False)
+    q5_functions_integrated = db.Column(db.Integer, nullable=False)
+    q6_too_much_inconsistency = db.Column(db.Integer, nullable=False)
+    q7_learn_quickly = db.Column(db.Integer, nullable=False)
+    q8_cumbersome_to_use = db.Column(db.Integer, nullable=False)
+    q9_felt_confident = db.Column(db.Integer, nullable=False)
+    q10_learn_lot_before_use = db.Column(db.Integer, nullable=False)
+    submitted_at = db.Column(db.DateTime, default=datetime.utcnow)

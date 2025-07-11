@@ -7,3 +7,8 @@ users/
 .ebextensions/
 .ebignore
 getsecret.py
+data_analysis.ipynb
+temp.gz
+.gitignore
+user_data.gz.parquet
+local-folder/

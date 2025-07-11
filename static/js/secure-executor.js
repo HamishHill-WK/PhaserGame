@@ -1,8 +1,6 @@
 class SecureGameExecutor {
     constructor() {
         this.allowedGlobals = ['Phaser', 'Math', 'Date', 'JSON', 'parseInt', 'parseFloat', 'Number', 'String', 'Array', 'Object'];
-        
-        // Your existing dangerous patterns
         this.dangerousPatterns = [
             {
                 pattern: /(?:new\s+)?Function\s*\(\s*['"`]/gi,

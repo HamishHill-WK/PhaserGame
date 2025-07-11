@@ -29,20 +29,17 @@
         }
     }
 
-    // Make clearDebugConsole available globally for the clear button
     window.clearDebugConsole = clearDebugConsole;
 
-    // Global error handler for JavaScript errors
     window.addEventListener('error', function(e) {
         // Check if error is from game.js
         const isGameError = e.filename && e.filename.includes('game.js');
         const errorLocation = isGameError ? 'game.js' : (e.filename || 'unknown');
         
-        const errorMsg = `JavaScript Error in ${errorLocation}: ${e.message} (line ${e.lineno})`;
+        const errorMsg = `JavaScript Error in ${errorLocation}: ${e.message} (line ${e.lineno - 4})`;
         addToDebugConsole(errorMsg, 'error');
         console.error('Detected Error:', e);
         
-        // Don't prevent default error handling
         return false;
     });
 
@@ -53,7 +50,6 @@
         console.error('Unhandled Promise Rejection:', e);
     });
 
-    // Monitor Phaser game initialization and errors
     let gameInitialized = false;
     let initCheckInterval;
 
@@ -84,7 +80,6 @@
         }, 10000);
     }
 
-    // Override console.error to capture manual error logs from game.js
     const originalConsoleError = console.error;
     console.error = function(...args) {
         // Call original console.error
