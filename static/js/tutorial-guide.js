@@ -1,6 +1,3 @@
-// tutorial-guide.js
-// Step-by-step guided overlay for the tutorial page
-
 const tutorialSteps = [
   {
     selector: '#game-container',
@@ -13,7 +10,7 @@ const tutorialSteps = [
     content: 'This is the code editor. Edit the game logic here to complete tasks.'
   },
   {
-    selector: '#console-container',
+    selector: '#debug-console-output',
     title: 'Console',
     content: 'The console displays output and error messages from your code.'
   },
@@ -22,7 +19,6 @@ const tutorialSteps = [
     title: 'AI Assistant',
     content: 'Use the chat box to ask the AI assistant for help or code suggestions.'
   },
-  // Switch to code editor after AI assistant explanation
   {
     selector: '#editor',
     title: 'Code Editor',

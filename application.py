@@ -22,7 +22,6 @@ application.secret_key = os.environ.get("SECRET_KEY", "your_secret_key")
 
 try:
     configure_database(application)
-    #print("Database configured successfully!")
 except Exception as e:
     print(f"Error configuring database: {e}")
 
@@ -32,7 +31,6 @@ def gameAIassistant():
     if not session_id:
         session['session_id'] = f"session_{uuid.uuid4().hex[:12]}"
     assigned_condition = session.get('assigned_condition')
-    #print(f"Assigned condition from session: {assigned_condition}")
     if not assigned_condition:
         user_id = session.get('user_id')
         print(f"User ID from session: {user_id}")
