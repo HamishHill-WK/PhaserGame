@@ -6,7 +6,7 @@ import boto3
 import tiktoken
 import requests
 
-print("Loading OpenAI API key from AWS Secrets Manager...")
+#print("Loading OpenAI API key from AWS Secrets Manager...")
 
 def get_secret(secret_name, region_name="eu-west-2"):
     print(f"Fetching secret: {secret_name} from AWS Secrets Manager in region {region_name}")
@@ -19,9 +19,9 @@ def get_secret(secret_name, region_name="eu-west-2"):
         SecretId=secret_name
     )
     
-    print(f"Loaded secret: {secret_name} from AWS Secrets Manager"
-          f" in region {region_name}"
-          f" at {datetime.now().isoformat()}")
+    # print(f"Loaded secret: {secret_name} from AWS Secrets Manager"
+    #       f" in region {region_name}"
+    #       f" at {datetime.now().isoformat()}")
 
     return get_secret_value_response['SecretString']
 
@@ -52,13 +52,13 @@ def get_response(prompt="", content="", model="gpt-4.1-mini"):
     requests_left = headers.get('x-ratelimit-remaining-requests', 'Unknown')
     tokens_left = headers.get('x-ratelimit-remaining-tokens', 'Unknown')    
     
-    print(f"💬 Response: {response}")
+    print(f"Response: {response}")
     # WARN IF LOW
     if requests_left != 'Unknown' and int(requests_left) < 10:
-        print("⚠️ WARNING: Less than 10 requests remaining!")
+        print(" WARNING: Less than 10 requests remaining!")
     
     if tokens_left != 'Unknown' and int(tokens_left) < 1000:
-        print("⚠️ WARNING: Less than 1000 tokens remaining!")
+        print("WARNING: Less than 1000 tokens remaining!")
 
     return response.output_text
 
@@ -162,13 +162,13 @@ def get_llm_response(context="", user_message="", session_id="default", user_id=
     requests_left = headers.get('x-ratelimit-remaining-requests', 'Unknown')
     tokens_left = headers.get('x-ratelimit-remaining-tokens', 'Unknown')    
     
-    print(f"💬 Response: {response}")
+    print(f"Response: {response}")
     # WARN IF LOW
     if requests_left != 'Unknown' and int(requests_left) < 10:
-        print("⚠️ WARNING: Less than 10 requests remaining!")
+        print("WARNING: Less than 10 requests remaining!")
     
     if tokens_left != 'Unknown' and int(tokens_left) < 1000:
-        print("⚠️ WARNING: Less than 1000 tokens remaining!")
+        print("WARNING: Less than 1000 tokens remaining!")
         
     return response.output_text
 
@@ -234,7 +234,7 @@ def get_react_response(context="", user_message="", session_id="default", user_i
             react_context.append(f"Tool Results: {tool_summary}")
         else:
             # No more tools needed, break early
-            print("✅ No tools requested, proceeding to final answer")
+            print("No tools requested, proceeding to final answer")
             break
     
         # Generate final response with all context

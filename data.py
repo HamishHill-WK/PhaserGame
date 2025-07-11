@@ -12,8 +12,6 @@ def is_development_mode():
 
 def configure_database(application):
     """Configure database settings and initialize with Flask application"""
-    #DATABASE_URL = os.environ.get('DATABASE_URL')
-    #if not DATABASE_URL:
     rds_hostname = os.environ.get('RDS_HOSTNAME')
     rds_port = os.environ.get('RDS_PORT', '5432')
     rds_db_name = os.environ.get('RDS_DB_NAME')

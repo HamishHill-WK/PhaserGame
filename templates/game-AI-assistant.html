@@ -171,7 +171,8 @@
         document.getElementById('finish-experiment-btn').addEventListener('click', function() {
             if (allTasksComplete()) {
                 if (window.location.pathname.includes('gameAIassistant')) {
-                    navigator.sendBeacon('/log-experiment-leave');
+             //       navigator.sendBeacon('/log-experiment-leave');
+                        console.log("Experiment leave logged");
                 }
                 window.location.href = "{{ url_for('sus') }}";
             } else {
@@ -179,9 +180,9 @@
             }
         });
         document.getElementById('proceed-debrief-btn').addEventListener('click', function() {
-            if (window.location.pathname.includes('gameAIassistant')) {
-                navigator.sendBeacon('/log-experiment-leave');
-            }
+            //if (window.location.pathname.includes('gameAIassistant')) {
+            //    navigator.sendBeacon('/log-experiment-leave');
+            //}
             window.location.href = "{{ url_for('sus') }}";
         });
         document.getElementById('continue-experiment-btn').addEventListener('click', function() {
@@ -241,13 +242,16 @@
                 });
             }
         });
+        let experimentLeaveLogged = false;
         window.addEventListener('beforeunload', function (e) {
-    // Attempt to save final code when user leaves the experiment page
-    if (window.location.pathname.includes('gameAIassistant')) {
-        navigator.sendBeacon('/log-experiment-leave');
-    }
-});
-        </script>
+            // Attempt to save final code when user leaves the experiment page
+            if (experimentLeaveLogged) return;
+            if (window.location.pathname.includes('gameAIassistant')) {
+                experimentLeaveLogged = true;
+                navigator.sendBeacon('/log-experiment-leave');
+            }
+        });
+    </script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/aistyle.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
