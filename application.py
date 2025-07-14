@@ -237,6 +237,7 @@ def LLMrequest():
         user_message = data.get("input", "")
         extended_thinking = data.get("extended_thinking", False)
         session_id = session.get('session_id', f"session_{uuid.uuid4().hex[:12]}")
+        llm_start_time = datetime.now()
         if 'session_id' not in session:
             session['session_id'] = session_id
         user_id = session.get('user_id')
@@ -246,6 +247,10 @@ def LLMrequest():
             response = assistant.get_react_response(context, user_message, session_id, user_id)
         else:
             response = assistant.get_llm_response(context, user_message, session_id, user_id)
+            
+        llm_end_time = datetime.now()
+        llm_duration = (llm_end_time - llm_start_time).total_seconds()
+        
 
         # Save user message and LLM response to ExperimentData
         if user_id:
@@ -258,7 +263,10 @@ def LLMrequest():
                 data=json.dumps({
                     "user_message": user_message,
                     "llm_response": response,
-                    "extended_thinking": extended_thinking
+                    "extended_thinking": extended_thinking,
+                    "llm_start_time": llm_start_time.isoformat(),
+                    "llm_end_time": llm_end_time.isoformat(),
+                    "llm_duration": llm_duration,
                 })
             ))
             db.session.commit()
