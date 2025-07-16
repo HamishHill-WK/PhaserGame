@@ -59,25 +59,33 @@ function togglePhaserUsage(){
         phaserUsageGroup.style.display = 'none';
     }
 }
+
+function toggleGameDevFields() {
+    let gameExp = document.getElementById('game_dev_experience_detailed').value;
+    let show = (gameExp && gameExp !== 'none');
+    document.getElementById('gamedev-years-group').style.display = show ? 'block' : 'none';
+    console.log('Game Dev Experience:', gameExp, 'Show:', show);
+}
+
 // Programming fields toggle
 function toggleProgrammingFields() {
-    var progExp = document.getElementById('programming_experience_detailed').value;
-    var gameExp = document.getElementById('game_dev_experience_detailed').value;
-    var show = (progExp && progExp !== 'none') || (gameExp && gameExp !== 'none');
+    let progExp = document.getElementById('programming_experience_detailed').value;
+    let gameExp = document.getElementById('game_dev_experience_detailed').value;
+    let show = (progExp && progExp !== 'none') || (gameExp && gameExp !== 'none');
     document.getElementById('programming-years-group').style.display = show ? 'block' : 'none';
     document.getElementById('programming-languages-group').style.display = show ? 'block' : 'none';
 }
 
 function toggleProgrammingFields() {
-    var progExp = document.getElementById('programming_experience_detailed').value;
-    var gameExp = document.getElementById('game_dev_experience_detailed').value;
-    var show = (progExp && progExp !== 'none') || (gameExp && gameExp !== 'none');
+    let progExp = document.getElementById('programming_experience_detailed').value;
+    let gameExp = document.getElementById('game_dev_experience_detailed').value;
+    let show = (progExp && progExp !== 'none') || (gameExp && gameExp !== 'none');
     document.getElementById('programming-years-group').style.display = show ? 'block' : 'none';
     document.getElementById('programming-languages-group').style.display = show ? 'block' : 'none';
 }
 
 function toggleGameEngines() {
-    var exp = document.getElementById('game_dev_experience_detailed').value;
+    let exp = document.getElementById('game_dev_experience_detailed').value;
     document.getElementById('game-engines-group').style.display = (exp && exp !== 'none') ? 'block' : 'none';
 }
 
@@ -87,6 +95,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('programming_experience_detailed').addEventListener('change', toggleProgrammingFields);
     document.getElementById('game_dev_experience_detailed').addEventListener('change', toggleProgrammingFields);
     document.getElementById('game_dev_experience_detailed').addEventListener('change', toggleGameEngines);
+    document.getElementById('game_dev_experience_detailed').addEventListener('change', toggleGameDevFields);
     document.getElementById('is_self_taught').addEventListener('change', toggleSelfTaughtFields);
     toggleSelfTaughtFields();
     toggleProgrammingFields();
@@ -94,14 +103,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Self-taught toggle
 function toggleSelfTaughtFields() {
-    var isSelfTaught = document.getElementById('is_self_taught').checked;
+    let isSelfTaught = document.getElementById('is_self_taught').checked;
     document.getElementById('self-taught-details-group').style.display = isSelfTaught ? 'block' : 'none';
 }
 
 // Course programming experience toggle
 function toggleCourseProgrammingExperience() {
-    var isStudent = document.getElementById('is_student').checked;
-    var isGraduate = document.getElementById('is_graduate').checked;
+    let isStudent = document.getElementById('is_student').checked;
+    let isGraduate = document.getElementById('is_graduate').checked;
     document.getElementById('course-programming-experience-group').style.display = (isStudent || isGraduate) ? 'block' : 'none';
 }
 document.addEventListener('DOMContentLoaded', function() {
@@ -112,7 +121,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Undergrad year toggle
 function toggleUndergradYear() {
-    var degreeLevel = document.getElementById('degree_level_current').value;
+    let degreeLevel = document.getElementById('degree_level_current').value;
     document.getElementById('undergrad-year-group').style.display = (degreeLevel === 'undergraduate') ? 'block' : 'none';
 }
 document.addEventListener('DOMContentLoaded', function() {
@@ -122,11 +131,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Graduate fields toggle
 function toggleGraduateFields() {
-    var isGraduate = document.getElementById('is_graduate').checked;
+    let isGraduate = document.getElementById('is_graduate').checked;
     document.getElementById('degree-level-highest-group').style.display = isGraduate ? 'block' : 'none';
 }
 function toggleStudentFields() {
-    var isStudent = document.getElementById('is_student').checked;
+    let isStudent = document.getElementById('is_student').checked;
     document.getElementById('degree-level-current-group').style.display = isStudent ? 'block' : 'none';
 }
 document.addEventListener('DOMContentLoaded', function() {

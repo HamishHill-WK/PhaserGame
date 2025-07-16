@@ -7,72 +7,7 @@
 <body>
     <div class="survey-container">
         <h1 class="survey-title">Research Survey</h1>
-        
-        <form method="POST" action="{{ url_for('submit_survey') }}">
-            <div class="question-group">
-                <label for="game_dev_experience_detailed">What is your experience of Game development? <span class="required">*</span></label>
-                <select name="game_dev_experience_detailed" id="game_dev_experience_detailed" required>
-                    <option value="">Select your experience level</option>
-                    <option value="none" {{ 'selected' if form_data and form_data.game_dev_experience_detailed == 'none' }}>None</option>
-                    <option value="limited" {{ 'selected' if form_data and form_data.game_dev_experience_detailed == 'limited' }}>Limited</option>
-                    <option value="moderate" {{ 'selected' if form_data and form_data.game_dev_experience_detailed == 'moderate' }}>Moderate</option>
-                    <option value="advanced" {{ 'selected' if form_data and form_data.game_dev_experience_detailed == 'advanced' }}>Advanced</option>
-                    <option value="professional" {{ 'selected' if form_data and form_data.game_dev_experience_detailed == 'professional' }}>Professional</option>
-                </select>
-            </div>
-
-            <div class="question-group conditional-field" id="gamedev-position-group" style="display: none;">
-                <label for="gamedev_position">If you selected professional, what is the highest position you have worked in?</label>
-                <select name="gamedev_position" id="gamedev_position">
-                    <option value="">Select position</option>
-                    <option value="junior" {{ 'selected' if form_data and form_data.gamedev_position == 'junior' }}>Junior</option>
-                    <option value="mid" {{ 'selected' if form_data and form_data.gamedev_position == 'mid' }}>Mid</option>
-                    <option value="senior" {{ 'selected' if form_data and form_data.gamedev_position == 'senior' }}>Senior</option>
-                    <option value="lead" {{ 'selected' if form_data and form_data.gamedev_position == 'lead' }}>Lead</option>
-                </select>
-            </div>
-
-            <div class="question-group" id="gamedev-years-group" style="display: {% if form_data and form_data.game_dev_experience_detailed != 'none' %}block{% else %}none{% endif %};">
-                <label for="gamedev_years">How many years have you practiced Game development?</label>
-                <input type="number" name="gamedev_years" id="gamedev_years" min="0" max="50" step="0.5" 
-                    value="{{ form_data.gamedev_years if form_data else '' }}" 
-                    placeholder="e.g., 2.5">
-                <small style="display: block; margin-top: 5px; color: #666;">Enter 0 if no experience, decimals allowed (e.g., 1.5 for 1.5 years)</small>
-            </div>
-
-            <div class="question-group" id="game-engines-group" style="display: {% if form_data and form_data.game_dev_experience_detailed != 'none' %}block{% else %}none{% endif %};">
-                <div>Which game engines have you used? (Select all that apply)</div>
-                <div class="languages-grid" id="game_engines">
-                    <label><input type="checkbox" name="engines" value="unity"> Unity</label>
-                    <label><input type="checkbox" name="engines" value="unreal"> Unreal Engine</label>
-                    <label><input type="checkbox" name="engines" value="godot"> Godot</label>
-                    <label><input type="checkbox" name="engines" value="gamemaker"> GameMaker Studio</label>
-                    <label><input type="checkbox" name="engines" value="rpgmaker"> RPG Maker</label>
-                    <label><input type="checkbox" name="engines" value="other"> Other (specify below)</label>
-                </div>
-                
-                <div class="other-language-input" style="margin-top: 15px;">
-                    <input type="text" name="other_engine" placeholder="If you selected 'Other', please specify..." style="width: 100%; padding: 8px;">
-                </div>
-                
-                <div style="margin-top: 15px;">
-                    <label><input type="checkbox" name="engines" value="none"> I have no game engine experience</label>
-                </div>
-            </div>
-
-            <div class="question-group">
-                <label for="programming_experience_detailed">What is your experience of programming? <span class="required">*</span></label>
-                <select name="programming_experience_detailed" id="programming_experience_detailed" required>
-                    <option value="">Select your experience level</option>
-                    <option value="none" {{ 'selected' if form_data and form_data.programming_experience_detailed == 'none' }}>None</option>
-                    <option value="limited" {{ 'selected' if form_data and form_data.programming_experience_detailed == 'limited' }}>Limited</option>
-                    <option value="moderate" {{ 'selected' if form_data and form_data.programming_experience_detailed == 'moderate' }}>Moderate</option>
-                    <option value="advanced" {{ 'selected' if form_data and form_data.programming_experience_detailed == 'advanced' }}>Advanced</option>
-                    <option value="professional" {{ 'selected' if form_data and form_data.programming_experience_detailed == 'professional' }}>Professional</option>
-                </select>
-            </div>
-
-            <div class="question-group">
+         <div class="question-group">
                 <label>
                     <input type="checkbox" name="is_student" id="is_student"
                         {% if form_data and form_data.is_student %}checked{% endif %}>
@@ -187,6 +122,71 @@
                     </select>
                 </div>
 
+        <form method="POST" action="{{ url_for('submit_survey') }}">
+            <div class="question-group">
+                <label for="game_dev_experience_detailed">What is your experience of Game development? <span class="required">*</span></label>
+                <select name="game_dev_experience_detailed" id="game_dev_experience_detailed" required>
+                    <option value="">Select your experience level</option>
+                    <option value="none" {{ 'selected' if form_data and form_data.game_dev_experience_detailed == 'none' }}>None</option>
+                    <option value="limited" {{ 'selected' if form_data and form_data.game_dev_experience_detailed == 'limited' }}>Limited</option>
+                    <option value="moderate" {{ 'selected' if form_data and form_data.game_dev_experience_detailed == 'moderate' }}>Moderate</option>
+                    <option value="advanced" {{ 'selected' if form_data and form_data.game_dev_experience_detailed == 'advanced' }}>Advanced</option>
+                    <option value="professional" {{ 'selected' if form_data and form_data.game_dev_experience_detailed == 'professional' }}>Professional</option>
+                </select>
+            </div>
+
+            <div class="question-group conditional-field" id="gamedev-position-group" style="display: none;">
+                <label for="gamedev_position">If you selected professional, what is the highest position you have worked in?</label>
+                <select name="gamedev_position" id="gamedev_position">
+                    <option value="">Select position</option>
+                    <option value="junior" {{ 'selected' if form_data and form_data.gamedev_position == 'junior' }}>Junior</option>
+                    <option value="mid" {{ 'selected' if form_data and form_data.gamedev_position == 'mid' }}>Mid</option>
+                    <option value="senior" {{ 'selected' if form_data and form_data.gamedev_position == 'senior' }}>Senior</option>
+                    <option value="lead" {{ 'selected' if form_data and form_data.gamedev_position == 'lead' }}>Lead</option>
+                </select>
+            </div>
+
+            <div class="question-group" id="gamedev-years-group" style="display: none;">
+                <label for="gamedev_years">How many years have you practiced Game development?</label>
+                <input type="number" name="gamedev_years" id="gamedev_years" min="0" max="50" step="0.5" 
+                    value="{{ form_data.gamedev_years if form_data else '' }}" 
+                    placeholder="e.g., 2.5">
+                <small style="display: block; margin-top: 5px; color: #666;">Enter 0 if no experience, decimals allowed (e.g., 1.5 for 1.5 years)</small>
+            </div>
+
+            <div class="question-group" id="game-engines-group" style="display: {% if form_data and form_data.game_dev_experience_detailed != 'none' %}block{% else %}none{% endif %};">
+                <div>Which game engines have you used? (Select all that apply)</div>
+                <div class="languages-grid" id="game_engines">
+                    <label><input type="checkbox" name="engines" value="unity"> Unity</label>
+                    <label><input type="checkbox" name="engines" value="unreal"> Unreal Engine</label>
+                    <label><input type="checkbox" name="engines" value="godot"> Godot</label>
+                    <label><input type="checkbox" name="engines" value="gamemaker"> GameMaker Studio</label>
+                    <label><input type="checkbox" name="engines" value="rpgmaker"> RPG Maker</label>
+                    <label><input type="checkbox" name="engines" value="other"> Other (specify below)</label>
+                </div>
+                
+                <div class="other-language-input" style="margin-top: 15px;">
+                    <input type="text" name="other_engine" placeholder="If you selected 'Other', please specify..." style="width: 100%; padding: 8px;">
+                </div>
+                
+                <div style="margin-top: 15px;">
+                    <label><input type="checkbox" name="engines" value="none"> I have no game engine experience</label>
+                </div>
+            </div>
+
+            <div class="question-group">
+                <label for="programming_experience_detailed">What is your experience of programming? <span class="required">*</span></label>
+                <select name="programming_experience_detailed" id="programming_experience_detailed" required>
+                    <option value="">Select your experience level</option>
+                    <option value="none" {{ 'selected' if form_data and form_data.programming_experience_detailed == 'none' }}>None</option>
+                    <option value="limited" {{ 'selected' if form_data and form_data.programming_experience_detailed == 'limited' }}>Limited</option>
+                    <option value="moderate" {{ 'selected' if form_data and form_data.programming_experience_detailed == 'moderate' }}>Moderate</option>
+                    <option value="advanced" {{ 'selected' if form_data and form_data.programming_experience_detailed == 'advanced' }}>Advanced</option>
+                    <option value="professional" {{ 'selected' if form_data and form_data.programming_experience_detailed == 'professional' }}>Professional</option>
+                </select>
+            </div>
+
+           
                 <div class="question-group conditional-field" id="programming-position-group" style="display: none;">
                     <label for="programming_position">If you selected professional, what is the highest position you have worked in?</label>
                     <select name="programming_position" id="programming_position">
