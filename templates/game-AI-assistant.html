@@ -17,6 +17,10 @@
                     <p>Debug Console Output:</p>
                     <div id="debug-console"></div>
                 </div>
+                <!-- Control condition message inserted below debug console, above asset list/documentation -->
+                <div id="control-condition-message" style="display:none;">
+                    <strong>Notice:</strong> You have been selected for the <span style="color:#d48806;">control condition</span> of this experiment. You will not have access to the AI assistant during this session.
+                </div>
             </div>
             <div id= "resources">
                 <div id="static-asset-list">
@@ -142,7 +146,7 @@
             </div>
         </div>   
         <script>
-        window.assigned_condition = "{{ assigned_condition|default('ai') }}";
+window.assigned_condition = "{{ assigned_condition|default('control') }}";
 
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Experiment condition:', window.assigned_condition);
@@ -156,6 +160,8 @@
                 // Set code editor as default
                 document.getElementById('editor').classList.remove('hidden');
                 document.getElementById('console-container').classList.add('hidden');
+                // Show control condition message
+                document.getElementById('control-condition-message').style.display = 'block';
             }
         });
 

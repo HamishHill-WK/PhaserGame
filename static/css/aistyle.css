@@ -1,3 +1,16 @@
+#control-condition-message {
+    background: #fffbe6;
+    color: #222;
+    border: 1px solid #ffe58f;
+    padding: 16px;
+    margin: 16px 0;
+    border-radius: 6px;
+    font-size: 1.08em;
+    text-align: center;
+    max-width: 800px;
+    width: 100%;
+    box-sizing: border-box;
+}
 .hidden {
     display: none !important;
 }
