@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', function() {
             checkbox.addEventListener('click', function(event) {
                 //event.preventDefault();
                 const currentCheckedStatus = this.checked;
-                handleTaskChange(taskId, currentCheckedStatus, !this.disabled, event);
+                //handleTaskChange(taskId, currentCheckedStatus, !this.disabled, event);
             });
         }
     });
