@@ -473,6 +473,8 @@ def submit_survey():
         course_programming_experience = request.form.getlist('course_programming_experience')
         undergrad_year = request.form.get('undergrad_year')
         course_related = request.form.get('course_related') == 'yes'
+        
+        
 
         survey_data = Survey(
             session_id=session_id,
@@ -501,6 +503,11 @@ def submit_survey():
             description=request.form.get('description', '')
         )
         
+        print(f"student: {is_student}, graduate: {is_graduate}, self_taught: {is_self_taught}")
+        print(f"self_taught_experience: {self_taught_experience}")
+        print(f"degree_level_current: {degree_level_current}, degree_level_highest: {degree_level_highest}")
+        print(f"course_related: {course_related}, undergrad_year: {undergrad_year}")
+
         expertise = categorize_expertise_from_existing_survey(survey_data)
         assigned_condition = assign_balanced_condition(User, expertise)
         

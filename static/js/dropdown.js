@@ -31,16 +31,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    Object.keys(taskDependencies).forEach(taskId => {
-        const checkbox = document.getElementById(taskId);
-        if (checkbox) {
-            checkbox.addEventListener('click', function(event) {
-                //event.preventDefault();
-                const currentCheckedStatus = this.checked;
-                //handleTaskChange(taskId, currentCheckedStatus, !this.disabled, event);
-            });
-        }
-    });
     resetTasks(); // Initialize settings on page load
 });
 
@@ -91,47 +81,79 @@ function resetTasks() {
     const t8 = document.getElementById('task8');
     t8.checked = false;
     t8.disabled = true; // Disable Task 8 initially
+    
+    // Set initial current task display
+    const task1Label = document.querySelector('label[for="task1"]');
+    if (task1Label) {
+        const taskText = task1Label.textContent.trim();
+        const currentTaskElement = document.getElementById('current-task-text');
+        if (currentTaskElement) {
+            currentTaskElement.innerText = `Current Task: ${taskText}`;
+        }
+    }
 }
 
 function handleTaskChange(taskId, currentCheckedStatus, enabled, event) {
     const dependencies = taskDependencies[taskId];
-    console.log(`checking ${taskId}. Checking dependencies...`);
+    console.log(`Handling ${taskId}. User wants to ${currentCheckedStatus ? 'check' : 'uncheck'} it.`);
+    
+    // Check if all dependencies are met
     let canCheck = true;
-
     dependencies.forEach(dep => {
         const depCheckbox = document.getElementById(dep);
         if (depCheckbox && !depCheckbox.checked) {
-            canCheck = false; // Can uncheck if all dependencies are checked
+            canCheck = false;
         } 
     });
 
-    if (canCheck) {
-        // If no dependencies are checked, reset the task
-        const selectedTask = document.getElementById(taskId);
-        selectedTask.checked = true;
-        console.warn(`checking ${taskId} due to met dependencies.`);
-    }
-    else{
+    // Handle the current task based on user intent and dependencies
+    if (currentCheckedStatus && !canCheck) {
+        // User wants to check but dependencies aren't met - prevent it
         document.getElementById(taskId).checked = false;
         console.warn(`Cannot check ${taskId} due to unmet dependencies.`);
+    } else {
+        // Allow the user's intended action (check/uncheck)
+        document.getElementById(taskId).checked = currentCheckedStatus;
+        console.log(`${taskId} ${currentCheckedStatus ? 'checked' : 'unchecked'} - dependencies ${canCheck ? 'met' : 'not needed for unchecking'}`);
     }
 
-    Object.keys(taskDependencies).forEach(dep => {
-        const dependencies = taskDependencies[dep];
-        let disabled = false;
-        dependencies.forEach(dep => {
+    // Update all tasks' disabled status and find the next available task
+    let nextAvailableTask = null;
+    Object.keys(taskDependencies).forEach(taskKey => {
+        const taskCheckbox = document.getElementById(taskKey);
+        const taskDeps = taskDependencies[taskKey];
+        
+        // Check if all dependencies for this task are met
+        let allDepsMet = true;
+        taskDeps.forEach(dep => {
             const depCheckbox = document.getElementById(dep);
             if (depCheckbox && !depCheckbox.checked) {
-                disabled = true; // Can uncheck if all dependencies are checked
-            } 
+                allDepsMet = false;
+            }
         });
-        const depCheckbox = document.getElementById(dep);
-        if (depCheckbox && disabled === false) {
-            depCheckbox.disabled = disabled;
-            currentTask = depCheckbox.closest('label').textContent.trim(); // Update current task
-            document.getElementById('current-task-text').innerText = `Current Task: ${currentTask}`;
+        
+        // Enable/disable the task based on dependencies
+        if (taskCheckbox) {
+            taskCheckbox.disabled = !allDepsMet;
+            
+            // Find the first available unchecked task for the current task display
+            if (allDepsMet && !taskCheckbox.checked && !nextAvailableTask) {
+                nextAvailableTask = taskKey;
+            }
         }
     });
+    
+    // Update current task display to show the next available task
+    if (nextAvailableTask) {
+        const taskLabel = document.querySelector(`label[for="${nextAvailableTask}"]`);
+        if (taskLabel) {
+            const taskText = taskLabel.textContent.trim();
+            document.getElementById('current-task-text').innerText = `Current Task: ${taskText}`;
+        }
+    } else {
+        // All tasks completed
+        document.getElementById('current-task-text').innerText = `Current Task: All tasks completed!`;
+    }
 }
 
 function switchTab(tabName) {
@@ -166,3 +188,6 @@ function switchTab(tabName) {
         }
     });
 }
+
+// Make handleTaskChange available globally so it can be called from HTML
+window.handleTaskChange = handleTaskChange;

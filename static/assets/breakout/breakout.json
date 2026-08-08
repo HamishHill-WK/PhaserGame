@@ -168,13 +168,15 @@
 	"spriteSourceSize": {"x":0,"y":0,"w":64,"h":32},
 	"sourceSize": {"w":64,"h":32}
 }},
+
+
 "meta": {
 	"app": "http://www.codeandweb.com/texturepacker",
 	"version": "1.0",
 	"image": "breakout.png",
 	"format": "RGBA8888",
 	"size": {"w":504,"h":121},
-	"scale": "1",
+	"scale": "0.5",
 	"smartupdate": "$TexturePacker:SmartUpdate:001f51c9029c40bfd47dffb21081606f:e188858ff10f5876d9b056ceae3435f7:aa94e37632703bccd6a813800bf3159a$"
 }
 }

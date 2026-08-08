@@ -209,6 +209,9 @@ window.assigned_condition = "{{ assigned_condition|default('ai') }}";
                     let cb = document.getElementById('task' + i);
                     if (cb) {
                         cb.addEventListener('change', function() {
+                            // Call the task unlock logic
+                            handleTaskChange('task' + i, cb.checked, !cb.disabled, event);
+                            
                             logTaskCheck('task' + i, cb.checked);
                             // Change the appearance of the task when checked/unchecked
                             let container = document.getElementById('task' + i + '-container');

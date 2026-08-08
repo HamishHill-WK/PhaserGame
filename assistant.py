@@ -6,8 +6,6 @@ import boto3
 import tiktoken
 import requests
 
-#print("Loading OpenAI API key from AWS Secrets Manager...")
-
 def get_secret(secret_name, region_name="eu-west-2"):
     print(f"Fetching secret: {secret_name} from AWS Secrets Manager in region {region_name}")
     session = boto3.session.Session()
@@ -26,6 +24,7 @@ def get_secret(secret_name, region_name="eu-west-2"):
     return get_secret_value_response['SecretString']
 
 MAX_TOKENS = 1014808
+load_dotenv()
 
 # --- Fetch and set the OpenAI API key from AWS Secrets Manager ---
 try:
@@ -33,8 +32,11 @@ try:
     os.environ["OPENAI_API_KEY"] = openai_api_key
 except Exception as e:
     print("Could not load OpenAI API key from AWS Secrets Manager:", e)
+    # Fallback to .env
+    openai_api_key = os.environ.get("OPENAI_API_KEY")
+    if not openai_api_key:
+        raise RuntimeError("OpenAI API key not found in AWS Secrets Manager or .env file.")
 
-load_dotenv()
 client = OpenAI(api_key=openai_api_key)
 
 # Dictionary to store conversations by session_id
